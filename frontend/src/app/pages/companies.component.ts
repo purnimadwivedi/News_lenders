@@ -9,12 +9,12 @@ import { Company } from '../models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div style="display:flex; align-items:center; justify-content: space-between;">
+    <div class="page-header-row">
       <div>
         <h1>Lenders</h1>
         <p class="muted">List of lenders to monitor in news fetches.</p>
       </div>
-      <button style="background-color:#f37920; color:#fff" (click)="openNew()">+ Add lender</button>
+      <button class="btn-accent" (click)="openNew()">+ Add lender</button>
     </div>
 
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
@@ -44,18 +44,18 @@ import { Company } from '../models';
           <label>Aliases (comma-separated)</label>
           <input [ngModel]="aliasesText" (ngModelChange)="setAliases($event)" placeholder="HDFC, Housing Development..." />
         </div>
-        <div style="grid-column: span 2;">
+        <div class="grid-span-2">
           <label>Extra search keywords (comma-separated)</label>
           <input [ngModel]="keywordsText" (ngModelChange)="setKeywords($event)" placeholder="mortgage, home loan" />
         </div>
-        <div style="grid-column: span 2;">
+        <div class="grid-span-2">
           <label>Notes</label>
           <textarea [(ngModel)]="editing.notes" rows="2"></textarea>
         </div>
         <div>
-          <label>
-            <input type="checkbox" [(ngModel)]="editing.active" style="width:auto; margin-right: 6px;" />
-            Active (included in fetches)
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="editing.active" />
+            <span>Active (included in fetches)</span>
           </label>
         </div>
       </div>
@@ -68,7 +68,7 @@ import { Company } from '../models';
 
     <div class="card" style="margin-top: 16px;">
       <div class="toolbar" style="margin-bottom: 0;">
-        <div style="min-width: 240px; flex: 1 1 240px;">
+        <div class="toolbar-item toolbar-search">
           <input [(ngModel)]="search" placeholder="Search lenders..." />
         </div>
         <div class="spacer"></div>

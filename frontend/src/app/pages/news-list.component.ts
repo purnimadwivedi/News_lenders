@@ -22,18 +22,18 @@ interface EditState {
     <p class="muted">Filter, review, and recalibrate AI classifications. Your corrections train the next batch.</p>
 
     <div class="card" style="margin-top: 16px;">
-      <div class="toolbar">
-        <div style="min-width: 200px; flex: 1 1 200px;">
+      <div class="toolbar news-toolbar">
+        <div class="toolbar-item toolbar-search">
           <input [(ngModel)]="search" (ngModelChange)="reload()" placeholder="Search title..." />
         </div>
-        <div style="min-width: 160px; flex: 1 1 160px;">
+        <div class="toolbar-item">
           <select [(ngModel)]="company" (ngModelChange)="reload()">
             <option value="">All lenders</option>
             <option *ngFor="let c of companies" [value]="c._id">{{ c.name }}</option>
           </select>
         </div>
        
-        <div style="min-width: 140px; flex: 1 1 140px;">
+        <div class="toolbar-item">
           <select [(ngModel)]="impactLevel" (ngModelChange)="reload()">
             <option value="">All impact</option>
             <option value="Critical">Critical</option>
@@ -42,7 +42,7 @@ interface EditState {
             <option value="Low">Low</option>
           </select>
         </div>
-         <div style="min-width: 140px; flex: 1 1 140px;">
+        <div class="toolbar-item">
           <select [(ngModel)]="riskLevel" (ngModelChange)="reload()">
             <option value="">All risk level</option>
             <option value="Low">Low</option>
@@ -51,7 +51,7 @@ interface EditState {
             <option value="Critical">Critical</option>
           </select>
         </div>
-        <div style="min-width: 140px; flex: 1 1 140px;">
+        <div class="toolbar-item">
           <select [(ngModel)]="riskType" (ngModelChange)="reload()">
             <option value="">All risk types</option>
             <option value="financial">Financial</option>
@@ -64,7 +64,7 @@ interface EditState {
           </select>
         </div>
         <div class="spacer"></div>
-        <span class="muted" style="font-size: 12px;">{{ total }} total</span>
+        <span class="muted toolbar-count" style="font-size: 12px;">{{ total }} total</span>
       </div>
     </div>
 

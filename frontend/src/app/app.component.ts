@@ -1,8 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-root',
@@ -11,9 +12,53 @@ import { ApiService } from './api.service';
   template: `
     <ng-container *ngIf="!isLoginPage">
       <div class="mobile-header">
-      <button class="hamburger" (click)="toggleSidebar()" aria-label="Open menu">≡</button>
-      <span class="brand-mini">Lender News</span>
-    </div>
+        <div class="mobile-header-left">
+          <button class="hamburger" (click)="toggleSidebar()" aria-label="Open navigation menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <span class="brand-mini">Lender News</span>
+        </div>
+        <div class="mobile-header-right">
+          <span class="status-indicator" [class.ok]="health?.ok" [class.bad]="healthError" [title]="health?.ok ? 'API online' : 'API offline'"></span>
+          <div class="mobile-profile-wrap" 
+               [class.active]="mobileDropdownOpen"
+               (click)="toggleMobileDropdown($event)" 
+               role="button" 
+               tabindex="0" 
+               aria-label="Profile menu"
+               [attr.aria-expanded]="mobileDropdownOpen">
+            <div class="dash-avatar mini">{{ userProfile.avatar }}</div>
+            <svg class="dash-chevron mini" [class.open]="mobileDropdownOpen" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            <div class="user-dropdown-menu mobile-pos" *ngIf="mobileDropdownOpen" (click)="$event.stopPropagation()" role="menu">
+              <div class="user-dropdown-header">
+                <div class="user-dropdown-avatar">{{ userProfile.avatar }}</div>
+                <div class="user-dropdown-details">
+                  <span class="user-dropdown-name">{{ userProfile.name }}</span>
+                  <span class="user-dropdown-email">{{ userProfile.email }}</span>
+                  <span class="user-dropdown-badge">{{ userProfile.role }}</span>
+                </div>
+              </div>
+              <div class="user-dropdown-divider"></div>
+              <div class="user-dropdown-items">
+                <button type="button" class="user-dropdown-item danger" (click)="triggerLogout($event)" role="menuitem">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
     <div class="sidebar-backdrop" [class.show]="sidebarOpen" (click)="closeSidebar()"></div>
 
@@ -25,6 +70,7 @@ import { ApiService } from './api.service';
             <div class="brand-title">Lender News</div>
             <div class="brand-sub" *ngIf="health">{{ health.company }}</div>
           </div>
+          <button class="sidebar-close-btn" (click)="closeSidebar()" aria-label="Close navigation menu">✕</button>
         </div>
         <nav>
           <a routerLink="/dashboard" routerLinkActive="active" (click)="closeSidebar()">Dashboard</a>
@@ -35,10 +81,6 @@ import { ApiService } from './api.service';
             <a routerLink="/runs" routerLinkActive="active" (click)="closeSidebar()">Runs</a>
             <a routerLink="/settings" routerLinkActive="active" (click)="closeSidebar()">Settings</a>
           </ng-container>
-          <a class="logout-link" (click)="logout()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Logout
-          </a>
         </nav>
         <div class="sidebar-footer" *ngIf="health">
           <div class="status-dot ok"></div>
@@ -60,40 +102,53 @@ import { ApiService } from './api.service';
   `,
   styles: [
     `
-      .sidebar {
-        width: 240px;
-        background: #f37920;
-        color: #e5e7eb;
-        padding: 20px 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-      }
-      .brand { display: flex; gap: 10px; align-items: center; padding: 4px 6px; }
+      .brand { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 4px 6px; }
       .brand-logo {
-        width: 48px; height: 48px; border-radius: 8px;
-        object-fit: contain; background: white; padding: 2px;
+        width: 44px; height: 44px; border-radius: 10px;
+        object-fit: contain; background: white; padding: 3px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
-      .brand-title { font-weight: 700; font-size: 14px; color: white; }
-      .brand-sub { font-size: 11px; color: #ffffff; margin-top: 1px; }
-      nav { display: flex; flex-direction: column; gap: 2px; }
+      .brand-title { font-weight: 700; font-size: 14px; color: white; letter-spacing: -0.01em; }
+      .brand-sub { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+      .sidebar-close-btn {
+        display: none;
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        font-size: 18px;
+        padding: 6px;
+        cursor: pointer;
+        line-height: 1;
+        border-radius: 6px;
+      }
+      .sidebar-close-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+      @media (max-width: 1023px) {
+        .sidebar-close-btn { display: flex; align-items: center; justify-content: center; }
+      }
+      nav { display: flex; flex-direction: column; gap: 4px; }
       nav a {
         display: block;
-        padding: 9px 12px;
-        border-radius: 7px;
-        color: #d1d5db;
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: #9ca3af;
         text-decoration: none;
-        font-size: 13px;
+        font-size: 13.5px;
         font-weight: 500;
+        transition: all 0.15s ease;
       }
-      nav a:hover { background: rgba(255, 255, 255, 0.9); color: black; }
-      nav a.active { background: #dadd3a; color: black; }
-      nav a.logout-link { color: #fca5a5; display: flex; align-items: center; gap: 8px; margin-top: 8px; cursor: pointer; }
-      nav a.logout-link:hover { color: #fee2e2; background: rgba(239, 68, 68, 0.2); }
+      nav a:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+      nav a.active {
+        background: #f37819;
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(243, 120, 25, 0.35);
+      }
+      nav a.logout-link { color: #f87171; display: flex; align-items: center; gap: 8px; margin-top: 8px; cursor: pointer; }
+      nav a.logout-link:hover { color: #fca5a5; background: rgba(239, 68, 68, 0.15); }
       .sidebar-footer {
         margin-top: auto;
         font-size: 11px;
-        color: #ecf3ff;
+        color: #9ca3af;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -103,23 +158,31 @@ import { ApiService } from './api.service';
       .status-dot { width: 8px; height: 8px; border-radius: 50%; }
       .status-dot.ok { background: #22c55e; }
       .status-dot.bad { background: #ef4444; }
-      .content { flex: 1; padding: 28px 32px; overflow-x: auto; min-width: 0; }
     `
   ]
 })
 export class AppComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  public authService = inject(AuthService);
   health: { ok: boolean; time: string; company: string; model: string } | null = null;
   healthError = false;
   sidebarOpen = false;
+  mobileDropdownOpen = false;
+
+  get userProfile() {
+    return this.authService.getUserProfile();
+  }
 
   ngOnInit() {
     this.api.health().subscribe({
       next: (h) => (this.health = h),
       error: () => (this.healthError = true)
     });
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.closeSidebar());
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
+      this.closeSidebar();
+      this.mobileDropdownOpen = false;
+    });
   }
 
   toggleSidebar() {
@@ -130,17 +193,37 @@ export class AppComponent implements OnInit {
     this.sidebarOpen = false;
   }
 
+  toggleMobileDropdown(event: Event) {
+    event.stopPropagation();
+    this.mobileDropdownOpen = !this.mobileDropdownOpen;
+  }
+
+  triggerLogout(event?: Event) {
+    if (event) event.stopPropagation();
+    this.mobileDropdownOpen = false;
+    this.closeSidebar();
+    this.authService.logout();
+  }
+
+  @HostListener('document:click')
+  onDocClick() {
+    if (this.mobileDropdownOpen) {
+      this.mobileDropdownOpen = false;
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEsc() {
+    if (this.mobileDropdownOpen) {
+      this.mobileDropdownOpen = false;
+    }
+  }
+
   get isLoginPage(): boolean {
     return this.router.url === '/login';
   }
 
   get role(): string {
-    return localStorage.getItem('userRole') || 'admin';
-  }
-
-  logout() {
-    localStorage.removeItem('userRole');
-    this.closeSidebar();
-    this.router.navigate(['/login']);
+    return this.authService.getRole() || 'admin';
   }
 }

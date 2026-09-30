@@ -6,15 +6,17 @@ import { RecipientsComponent } from './pages/recipients.component';
 import { RunsComponent } from './pages/runs.component';
 import { SettingsComponent } from './pages/settings.component';
 import { LoginComponent } from './pages/login.component';
+import { authGuard } from './auth.guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: 'login', component: LoginComponent },
-  { path: 'dashboard', component: DashboardComponent },
-  { path: 'news', component: NewsListComponent },
-  { path: 'companies', component: CompaniesComponent },
-  { path: 'recipients', component: RecipientsComponent },
-  { path: 'runs', component: RunsComponent },
-  { path: 'settings', component: SettingsComponent },
+  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'news', component: NewsListComponent, canActivate: [authGuard] },
+  { path: 'companies', component: CompaniesComponent, canActivate: [authGuard] },
+  { path: 'recipients', component: RecipientsComponent, canActivate: [authGuard] },
+  { path: 'runs', component: RunsComponent, canActivate: [authGuard] },
+  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'dashboard' }
 ];
+

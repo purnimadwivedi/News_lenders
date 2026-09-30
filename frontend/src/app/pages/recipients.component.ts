@@ -9,12 +9,12 @@ import { Recipient } from '../models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div style="display:flex; align-items:center; justify-content: space-between;">
+    <div class="page-header-row">
       <div>
         <h1>Recipients</h1>
         <p class="muted">People who receive risk alerts and digests.</p>
       </div>
-      <button style="background-color:#f37920; color:#fff" (click)="openNew()">+ Add recipient</button>
+      <button class="btn-accent" (click)="openNew()">+ Add recipient</button>
     </div>
 
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
@@ -42,21 +42,21 @@ import { Recipient } from '../models';
           </select>
         </div>
         <div>
-          <label>
-            <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" style="width:auto; margin-right: 6px;" />
-            Immediate alerts (real-time)
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" />
+            <span>Immediate alerts (real-time)</span>
           </label>
         </div>
         <div>
-          <label>
-            <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" style="width:auto; margin-right: 6px;" />
-            Daily digest
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" />
+            <span>Daily digest</span>
           </label>
         </div>
         <div>
-          <label>
-            <input type="checkbox" [(ngModel)]="editing.active" style="width:auto; margin-right: 6px;" />
-            Active
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="editing.active" />
+            <span>Active</span>
           </label>
         </div>
       </div>
@@ -91,10 +91,12 @@ import { Recipient } from '../models';
               {{ r.receiveImmediateAlerts ? 'alert' : '—' }} / {{ r.receiveDailyDigest ? 'digest' : '—' }}
             </td>
             <td>{{ r.active ? '✓' : '✗' }}</td>
-            <td style="text-align: right;">
-              <button (click)="test(r)">Test</button>
-              <button (click)="edit(r)">Edit</button>
-              <button class="danger" (click)="del(r)">Delete</button>
+            <td style="text-align: right; white-space: nowrap;">
+              <div class="table-actions">
+                <button (click)="test(r)">Test</button>
+                <button (click)="edit(r)">Edit</button>
+                <button class="danger" (click)="del(r)">Delete</button>
+              </div>
             </td>
           </tr>
           <tr *ngIf="!items.length">
