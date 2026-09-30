@@ -26,7 +26,7 @@ import { Recipient } from '../models';
         </div>
         <div>
           <label>Email *</label>
-          <input [(ngModel)]="editing.email" placeholder="name@company.com" />
+          <input [(ngModel)]="editing.email" placeholder="name@lender.com" />
         </div>
         <div>
           <label>Role</label>

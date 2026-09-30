@@ -26,7 +26,7 @@ import { NewsArticle, Stats } from '../models';
         <div class="stat-value high">{{ getCount('High') }}</div>
       </div>
       <div class="card stat">
-        <div class="stat-label">Companies tracked</div>
+        <div class="stat-label">Lenders tracked</div>
         <div class="stat-value">{{ stats.topCompanies.length }}</div>
       </div>
     </div>
@@ -41,7 +41,7 @@ import { NewsArticle, Stats } from '../models';
         </div>
       </div>
       <div class="card">
-        <h3>Top mentioned companies</h3>
+        <h3>Top mentioned lenders</h3>
         <div *ngFor="let item of stats?.topCompanies" class="bar-row hand-cursor" [routerLink]="['/news', { company: item._id}]">
           <span class="company-name">{{ item._id }}</span>
           <div class="bar"><div class="bar-fill default" [style.width.%]="barWidthTopCompany(item.count)"></div></div>

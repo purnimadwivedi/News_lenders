@@ -32,7 +32,7 @@ import { RunLog } from '../models';
             <th>Status</th>
             <th>Started</th>
             <th>Duration</th>
-            <th>Companies</th>
+            <th>Lenders</th>
             <th>Fetched</th>
             <th>New</th>
             <th>Classified</th>

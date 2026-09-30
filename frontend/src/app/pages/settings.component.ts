@@ -59,7 +59,7 @@ const RISK_PLACEHOLDERS: Record<string, string> = {
       <div class="section-head">
         <div>
           <h2>Impact levels</h2>
-          <p class="muted small">How materially a news item affects {{ companyName }} specifically.</p>
+          <p class="muted small">How materially a news item affects {{ lenderName }} specifically.</p>
         </div>
       </div>
       <div class="defs-grid">
@@ -160,12 +160,12 @@ export class SettingsComponent implements OnInit {
   riskTypes = RISK_TYPES;
   impactPlaceholder = IMPACT_PLACEHOLDERS;
   riskPlaceholder = RISK_PLACEHOLDERS;
-  companyName = 'your company';
+  lenderName = 'your lender';
 
   ngOnInit() {
     this.reload();
     this.api.health().subscribe({
-      next: (h) => (this.companyName = h.company)
+      next: (h) => (this.lenderName = h.company)
     });
   }
 

@@ -28,7 +28,7 @@ interface EditState {
         </div>
         <div style="min-width: 160px; flex: 1 1 160px;">
           <select [(ngModel)]="company" (ngModelChange)="reload()">
-            <option value="">All companies</option>
+            <option value="">All lenders</option>
             <option *ngFor="let c of companies" [value]="c._id">{{ c.name }}</option>
           </select>
         </div>

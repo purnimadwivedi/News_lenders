@@ -11,14 +11,14 @@ import { Company } from '../models';
   template: `
     <div style="display:flex; align-items:center; justify-content: space-between;">
       <div>
-        <h1>Companies</h1>
-        <p class="muted">List of companies to monitor in news fetches.</p>
+        <h1>Lenders</h1>
+        <p class="muted">List of lenders to monitor in news fetches.</p>
       </div>
-      <button style="background-color:#f37920; color:#fff" (click)="openNew()">+ Add company</button>
+      <button style="background-color:#f37920; color:#fff" (click)="openNew()">+ Add lender</button>
     </div>
 
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
-      <h3>{{ editing._id ? 'Edit company' : 'New company' }}</h3>
+      <h3>{{ editing._id ? 'Edit lender' : 'New lender' }}</h3>
       <div class="grid-2" style="margin-top: 12px;">
         <div>
           <label>Name *</label>
@@ -92,7 +92,7 @@ import { Company } from '../models';
             </td>
           </tr>
           <tr *ngIf="!items.length">
-            <td colspan="6" class="muted" style="text-align:center; padding: 30px;">No companies yet.</td>
+            <td colspan="6" class="muted" style="text-align:center; padding: 30px;">No lenders yet.</td>
           </tr>
         </tbody>
       </table>

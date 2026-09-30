@@ -5,9 +5,11 @@ import { CompaniesComponent } from './pages/companies.component';
 import { RecipientsComponent } from './pages/recipients.component';
 import { RunsComponent } from './pages/runs.component';
 import { SettingsComponent } from './pages/settings.component';
+import { LoginComponent } from './pages/login.component';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'news', component: NewsListComponent },
   { path: 'companies', component: CompaniesComponent },
