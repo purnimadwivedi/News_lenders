@@ -66,6 +66,16 @@ import { Company } from '../models';
       </div>
     </div>
 
+    <div class="card" style="margin-top: 16px;">
+      <div class="toolbar" style="margin-bottom: 0;">
+        <div style="min-width: 240px; flex: 1 1 240px;">
+          <input [(ngModel)]="search" placeholder="Search lenders..." />
+        </div>
+        <div class="spacer"></div>
+        <span class="muted" style="font-size: 12px;">{{ filteredItems.length }} total</span>
+      </div>
+    </div>
+
     <div class="card" style="margin-top: 16px; padding: 0;">
      <div class="table-wrap">
       <table>
@@ -76,23 +86,27 @@ import { Company } from '../models';
             <th>Relationship</th>
             <th>Aliases</th>
             <th>Active</th>
-            <th></th>
+            <th style="text-align: center;">Action</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of items">
+          <tr *ngFor="let c of filteredItems">
             <td><strong>{{ c.name }}</strong></td>
             <td>{{ c.sector || '—' }}</td>
             <td><span class="badge">{{ c.relationship }}</span></td>
             <td class="muted">{{ (c.aliases || []).join(', ') || '—' }}</td>
             <td>{{ c.active ? '✓' : '✗' }}</td>
-            <td style="text-align: right;">
-              <button (click)="edit(c)">Edit</button>
-              <button class="danger" (click)="del(c)">Delete</button>
+            <td style="text-align: right; white-space: nowrap;">
+              <div class="table-actions">
+                <button (click)="edit(c)">Edit</button>
+                <button class="danger" (click)="del(c)">Delete</button>
+              </div>
             </td>
           </tr>
-          <tr *ngIf="!items.length">
-            <td colspan="6" class="muted" style="text-align:center; padding: 30px;">No lenders yet.</td>
+          <tr *ngIf="!filteredItems.length">
+            <td colspan="6" class="muted" style="text-align:center; padding: 30px;">
+              {{ search.trim() ? 'No lenders match your search.' : 'No lenders yet.' }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -103,16 +117,40 @@ import { Company } from '../models';
     `
       h1 { margin: 0 0 4px 0; font-size: 24px; }
       h3 { margin: 0; font-size: 14px; }
+      .table-actions {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .table-actions button {
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.2;
+      }
     `
   ]
 })
 export class CompaniesComponent implements OnInit {
   private api = inject(ApiService);
   items: Company[] = [];
+  search = '';
   editing: Partial<Company> | null = null;
   aliasesText = '';
   keywordsText = '';
   error = '';
+
+  get filteredItems(): Company[] {
+    const q = this.search.trim().toLowerCase();
+    if (!q) return this.items;
+    return this.items.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.aliases && c.aliases.some((a) => a.toLowerCase().includes(q))) ||
+        (c.sector && c.sector.toLowerCase().includes(q))
+    );
+  }
 
   ngOnInit() {
     this.load();

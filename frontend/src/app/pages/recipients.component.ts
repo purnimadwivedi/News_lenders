@@ -78,7 +78,7 @@ import { Recipient } from '../models';
             <th>Min impact</th>
             <th>Alerts / Digest</th>
             <th>Active</th>
-            <th></th>
+             <th style="text-align: center;">Action</th>
           </tr>
         </thead>
         <tbody>

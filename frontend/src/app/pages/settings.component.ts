@@ -56,13 +56,16 @@ const RISK_PLACEHOLDERS: Record<string, string> = {
     </div>
 
     <div *ngIf="cfg" class="card section">
-      <div class="section-head">
+      <div class="section-head" (click)="impactLevelsOpen = !impactLevelsOpen" style="cursor:pointer;">
         <div>
           <h2>Impact levels</h2>
           <p class="muted small">How materially a news item affects {{ lenderName }} specifically.</p>
         </div>
+        <button (click)="impactLevelsOpen = !impactLevelsOpen; $event.stopPropagation()">
+          {{ impactLevelsOpen ? 'Hide' : 'Show' }}
+        </button>
       </div>
-      <div class="defs-grid">
+      <div *ngIf="impactLevelsOpen" class="defs-grid">
         <div *ngFor="let lvl of levels" class="def-row">
           <label><span class="badge badge-{{ lvl }}">{{ lvl }}</span> impact means…</label>
           <textarea [(ngModel)]="cfg.impactLevelDefinitions[lvl]"
@@ -73,13 +76,16 @@ const RISK_PLACEHOLDERS: Record<string, string> = {
     </div>
 
     <div *ngIf="cfg" class="card section">
-      <div class="section-head">
+      <div class="section-head" (click)="riskLevelsOpen = !riskLevelsOpen" style="cursor:pointer;">
         <div>
           <h2>Risk levels</h2>
           <p class="muted small">How severe the underlying news event is, in absolute terms.</p>
         </div>
+        <button (click)="riskLevelsOpen = !riskLevelsOpen; $event.stopPropagation()">
+          {{ riskLevelsOpen ? 'Hide' : 'Show' }}
+        </button>
       </div>
-      <div class="defs-grid">
+      <div *ngIf="riskLevelsOpen" class="defs-grid">
         <div *ngFor="let lvl of levels" class="def-row">
           <label><span class="badge badge-{{ lvl }}">{{ lvl }}</span> risk means…</label>
           <textarea [(ngModel)]="cfg.riskLevelDefinitions[lvl]"
@@ -153,6 +159,8 @@ export class SettingsComponent implements OnInit {
   private api = inject(ApiService);
   cfg: Configuration | null = null;
   saving = false;
+  impactLevelsOpen = true;
+  riskLevelsOpen = true;
   riskTypesOpen = false;
   status: { kind: 'ok' | 'err'; msg: string } | null = null;
 

@@ -32,6 +32,7 @@ interface EditState {
             <option *ngFor="let c of companies" [value]="c._id">{{ c.name }}</option>
           </select>
         </div>
+       
         <div style="min-width: 140px; flex: 1 1 140px;">
           <select [(ngModel)]="impactLevel" (ngModelChange)="reload()">
             <option value="">All impact</option>
@@ -39,6 +40,15 @@ interface EditState {
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
+          </select>
+        </div>
+         <div style="min-width: 140px; flex: 1 1 140px;">
+          <select [(ngModel)]="riskLevel" (ngModelChange)="reload()">
+            <option value="">All risk level</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
           </select>
         </div>
         <div style="min-width: 140px; flex: 1 1 140px;">
@@ -230,6 +240,7 @@ export class NewsListComponent implements OnInit {
   skip = 0;
   search = '';
   company = '';
+  riskLevel = '';
   impactLevel = '';
   riskType = '';
 
@@ -238,28 +249,29 @@ export class NewsListComponent implements OnInit {
 
   cmpny: string | null = null;
 
-  constructor(private route: ActivatedRoute){}
+  constructor(private route: ActivatedRoute) { }
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
       this.impactLevel = params.get('impact') ?? '';
-      this.cmpny = params.get('company') ?? '';      
+      this.riskLevel = params.get('risk') ?? params.get('riskLevel') ?? '';
+      this.cmpny = params.get('company') ?? '';
     });
     this.api.listCompanies().subscribe((c) => {
       this.companies = c;
-          this.reload();
-          }
+      this.reload();
+    }
     );
   }
 
   reload() {
 
-      if(this.companies){
-        let temp = this.companies.filter(a => a.name == this.cmpny)[0] ?? null;
-        if(temp){
-            this.company = temp._id ?? '';
-        } 
+    if (this.companies) {
+      let temp = this.companies.filter(a => a.name == this.cmpny)[0] ?? null;
+      if (temp) {
+        this.company = temp._id ?? '';
       }
+    }
 
     this.skip = 0;
     this.fetch(true);
@@ -276,14 +288,22 @@ export class NewsListComponent implements OnInit {
     riskType?: RiskType;
     sentiment?: string;
   } {
-    const c = a.classification || {};
+    const eff = (a as any).effectiveClassification || {};
+    const c = a.classification || eff || {};
     const u = a.userOverride;
-    if (!u || !u.overriddenAt) return c;
+    if (!u || !u.overriddenAt) {
+      return {
+        impactLevel: c.impactLevel || eff.impactLevel,
+        riskLevel: c.riskLevel || eff.riskLevel,
+        riskType: c.riskType || eff.riskType,
+        sentiment: c.sentiment || eff.sentiment
+      };
+    }
     return {
-      impactLevel: u.impactLevel || c.impactLevel,
-      riskLevel: u.riskLevel || c.riskLevel,
-      riskType: u.riskType || c.riskType,
-      sentiment: u.sentiment || c.sentiment
+      impactLevel: u.impactLevel || c.impactLevel || eff.impactLevel,
+      riskLevel: u.riskLevel || c.riskLevel || eff.riskLevel,
+      riskType: u.riskType || c.riskType || eff.riskType,
+      sentiment: u.sentiment || c.sentiment || eff.sentiment
     };
   }
 
@@ -350,16 +370,23 @@ export class NewsListComponent implements OnInit {
 
   private fetch(replace: boolean) {
     this.loading = true;
-    const params: Record<string, string> = { limit: String(this.pageSize), skip: String(this.skip) };
+    const limit = this.riskLevel ? '100' : String(this.pageSize);
+    const skip = this.riskLevel ? '0' : String(this.skip);
+    const params: Record<string, string> = { limit, skip };
     if (this.search) params['search'] = this.search;
     if (this.company) params['company'] = this.company;
+    if (this.riskLevel) params['riskLevel'] = this.riskLevel;
     if (this.impactLevel) params['impactLevel'] = this.impactLevel;
     if (this.riskType) params['riskType'] = this.riskType;
 
     this.api.listNews(params).subscribe({
       next: (r) => {
-        this.total = r.total;
-        this.articles = replace ? r.items : [...this.articles, ...r.items];
+        let items = r.items;
+        if (this.riskLevel) {
+          items = items.filter((a) => this.effective(a).riskLevel === this.riskLevel);
+        }
+        this.total = this.riskLevel ? items.length : r.total;
+        this.articles = replace ? items : [...this.articles, ...items];
         this.loading = false;
       },
       error: () => (this.loading = false)
