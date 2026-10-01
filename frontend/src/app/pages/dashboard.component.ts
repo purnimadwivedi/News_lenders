@@ -274,7 +274,7 @@ import { Company, NewsArticle, Stats } from '../models';
         <div class="dash-chart-header">
           <h3 class="dash-chart-title">Risk Types</h3>
         </div>
-        <div class="dash-graph-container" style="display: flex; align-items: center; justify-content: center; height: 120px;" *ngIf="stats">
+        <div class="dash-graph-container" style="display: flex; align-items: center; justify-content: center; flex: 1;" *ngIf="stats">
           <svg viewBox="0 0 100 100" style="width: 120px; height: 120px;">
             <path *ngFor="let slice of getRiskPieChartData()"
                   class="hand-cursor"
@@ -307,6 +307,11 @@ import { Company, NewsArticle, Stats } from '../models';
   `,
   styles: [
     `
+      :host {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
       .hand-cursor { cursor: pointer; }
     `
   ]
