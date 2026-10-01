@@ -105,7 +105,7 @@ const RISK_PLACEHOLDERS: Record<string, string> = {
           <label style="text-transform: capitalize;">{{ t }}</label>
           <textarea [(ngModel)]="cfg.riskTypeDefinitions[t]"
                     rows="2"
-                    [placeholder]="'What counts as ' + t + ' risk for us?'"></textarea>
+                    [placeholder]="'What counts as ' + t + ' impact for us?'"></textarea>
         </div>
       </div>
     </div>

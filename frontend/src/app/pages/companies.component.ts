@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, DoCheck, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -62,51 +62,81 @@ import { Company } from '../models';
       </div>
     </div>
 
-    <div class="card" style="margin-top: 16px;">
-      <div class="toolbar" style="margin-bottom: 0;">
-        <div class="toolbar-item toolbar-search">
-          <input [(ngModel)]="search" placeholder="Search lenders..." />
-        </div>
-        <div class="spacer"></div>
-        <span class="muted" style="font-size: 12px;">{{ filteredItems.length }} total</span>
-      </div>
-    </div>
-
     <div class="card" style="margin-top: 16px; padding: 0;">
-     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Sector</th>
-            <th>Relationship</th>
-            <th>Aliases</th>
-            <th>Active</th>
-            <th style="text-align: center;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let c of filteredItems">
-            <td><strong>{{ c.name }}</strong></td>
-            <td>{{ c.sector || '—' }}</td>
-            <td><span class="badge">{{ c.relationship }}</span></td>
-            <td class="muted">{{ (c.aliases || []).join(', ') || '—' }}</td>
-            <td>{{ c.active ? '✓' : '✗' }}</td>
-            <td style="text-align: right; white-space: nowrap;">
-              <div class="table-actions">
-                <button (click)="edit(c)">Edit</button>
-                <button class="danger" (click)="del(c)">Delete</button>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="!filteredItems.length">
-            <td colspan="6" class="muted" style="text-align:center; padding: 30px;">
-              {{ search.trim() ? 'No lenders match your search.' : 'No lenders yet.' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-     </div>
+      <div class="table-toolbar">
+        <div class="pill-input-group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
+          </svg>
+          <input [(ngModel)]="search" placeholder="Search lender..." />
+        </div>
+        <select class="pill-select" [(ngModel)]="selectedSector">
+          <option value="">All Sectors</option>
+          <option *ngFor="let s of sectors" [value]="s">{{ s }}</option>
+        </select>
+        <select class="pill-select" [(ngModel)]="selectedRelationship">
+          <option value="">All Relationships</option>
+          <option *ngFor="let r of relationships" [value]="r">{{ r }}</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="pill-btn" (click)="exportCsv()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Export CSV
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th (click)="sortBy('name')">Name <span class="sort-icon">{{ sortCol === 'name' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('sector')">Sector <span class="sort-icon">{{ sortCol === 'sector' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('relationship')">Relationship <span class="sort-icon">{{ sortCol === 'relationship' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('aliases')">Aliases <span class="sort-icon">{{ sortCol === 'aliases' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('active')">Active <span class="sort-icon">{{ sortCol === 'active' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of pagedItems">
+              <td style="font-weight: 500;">{{ c.name }}</td>
+              <td>{{ c.sector || '—' }}</td>
+              <td><span style="color: #ea580c; font-weight: 500;">{{ c.relationship }}</span></td>
+              <td style="color: #64748b;">{{ (c.aliases || []).join(', ') || '—' }}</td>
+              <td [style.color]="c.active ? '#10b981' : '#ef4444'" style="font-weight: 500;">{{ c.active ? 'Active' : 'Inactive' }}</td>
+              <td style="text-align: right; white-space: nowrap;">
+                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px;" (click)="edit(c)">Edit</button>
+                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px; margin-left: 6px; color: #ef4444; border-color: #fca5a5;" (click)="del(c)">Del</button>
+              </td>
+            </tr>
+            <tr *ngIf="!pagedItems.length">
+              <td colspan="6" style="text-align:center; padding: 30px; color: #94a3b8;">
+                {{ search.trim() ? 'No lenders match your search.' : 'No lenders yet.' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>Rows per page</span>
+          <select class="pill-select" style="padding: 2px 24px 2px 8px;" [(ngModel)]="pageSize" (change)="currentPage = 1">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <span style="margin-left: 8px;">Total {{ filteredItems.length }} lenders</span>
+        </div>
+        <div class="pagination-controls">
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="currentPage = currentPage - 1">&lt; Prev</button>
+          <button class="page-btn active">{{ currentPage }}</button>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="currentPage = currentPage + 1">Next &gt;</button>
+        </div>
+      </div>
     </div>
   `,
   styles: [
@@ -128,29 +158,127 @@ import { Company } from '../models';
     `
   ]
 })
-export class CompaniesComponent implements OnInit {
+export class CompaniesComponent implements OnInit, DoCheck {
   private api = inject(ApiService);
   items: Company[] = [];
   search = '';
+  selectedSector = '';
+  selectedRelationship = '';
   editing: Partial<Company> | null = null;
   aliasesText = '';
   keywordsText = '';
   error = '';
+  
+  sortCol = 'name';
+  sortDesc = false;
+  pageSize = 10;
+  currentPage = 1;
+
+  sortBy(col: string) {
+    if (this.sortCol === col) {
+      this.sortDesc = !this.sortDesc;
+    } else {
+      this.sortCol = col;
+      this.sortDesc = false;
+    }
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredItems.length / this.pageSize) || 1;
+  }
+
+  get pagedItems(): Company[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredItems.slice(start, start + this.pageSize);
+  }
+
+  get sectors(): string[] {
+    const s = new Set(this.items.map(c => c.sector).filter(Boolean));
+    return Array.from(s).sort() as string[];
+  }
+
+  get relationships(): string[] {
+    const r = new Set(this.items.map(c => c.relationship).filter(Boolean));
+    return Array.from(r).sort() as string[];
+  }
 
   get filteredItems(): Company[] {
-    const activeItems = this.items.filter(c => c.active);
+    let activeItems = this.items.filter(c => c.active);
+    
+    if (this.selectedSector) {
+      activeItems = activeItems.filter(c => c.sector === this.selectedSector);
+    }
+    if (this.selectedRelationship) {
+      activeItems = activeItems.filter(c => c.relationship === this.selectedRelationship);
+    }
+
     const q = this.search.trim().toLowerCase();
-    if (!q) return activeItems;
-    return activeItems.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.aliases && c.aliases.some((a) => a.toLowerCase().includes(q))) ||
-        (c.sector && c.sector.toLowerCase().includes(q))
-    );
+    let res = activeItems;
+    if (q) {
+      res = activeItems.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.aliases && c.aliases.some((a) => a.toLowerCase().includes(q))) ||
+          (c.sector && c.sector.toLowerCase().includes(q))
+      );
+    }
+    
+    res.sort((a, b) => {
+      let v1 = (a as any)[this.sortCol] || '';
+      let v2 = (b as any)[this.sortCol] || '';
+      
+      if (this.sortCol === 'aliases') {
+        v1 = (a.aliases || []).join(', ');
+        v2 = (b.aliases || []).join(', ');
+      }
+      
+      if (typeof v1 === 'string') v1 = v1.toLowerCase();
+      if (typeof v2 === 'string') v2 = v2.toLowerCase();
+      
+      if (v1 < v2) return this.sortDesc ? 1 : -1;
+      if (v1 > v2) return this.sortDesc ? -1 : 1;
+      return 0;
+    });
+
+    return res;
+  }
+
+  exportCsv() {
+    const data = this.filteredItems.map(c => ({
+      Name: c.name,
+      Sector: c.sector || '',
+      Relationship: c.relationship || '',
+      Aliases: (c.aliases || []).join('; '),
+      Active: c.active ? 'Yes' : 'No'
+    }));
+    
+    if (!data.length) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(h => `"${((row as any)[h] || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lenders_export_${new Date().getTime()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
   ngOnInit() {
     this.load();
+  }
+
+  // watch for filter changes and reset page
+  ngDoCheck() {
+    const total = this.totalPages;
+    if (this.currentPage > total && total > 0) {
+      this.currentPage = total;
+    }
   }
 
   load() {
