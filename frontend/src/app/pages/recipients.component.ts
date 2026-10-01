@@ -111,16 +111,16 @@ import { Recipient } from '../models';
               <td style="font-weight: 500;">{{ r.name }}</td>
               <td style="color: #64748b;">{{ r.email }}</td>
               <td style="color: #64748b;">{{ r.role || '—' }}</td>
-              <td><span class="badge badge-{{ r.minImpactLevel }}" style="font-size: 11px;">{{ r.minImpactLevel }}</span></td>
-              <td style="color: #64748b; font-size: 11px;">
+              <td><span class="badge badge-{{ r.minImpactLevel }}">{{ r.minImpactLevel }}</span></td>
+              <td style="color: #64748b;">
                 <span [style.color]="r.receiveImmediateAlerts ? '#ea580c' : 'inherit'">{{ r.receiveImmediateAlerts ? 'Alert' : '—' }}</span> / 
                 <span [style.color]="r.receiveDailyDigest ? '#3b82f6' : 'inherit'">{{ r.receiveDailyDigest ? 'Digest' : '—' }}</span>
               </td>
               <td [style.color]="r.active ? '#10b981' : '#ef4444'" style="font-weight: 500;">{{ r.active ? 'Active' : 'Inactive' }}</td>
               <td style="text-align: right; white-space: nowrap;">
-                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px;" (click)="test(r)">Test</button>
-                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px; margin-left: 6px;" (click)="edit(r)">Edit</button>
-                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px; margin-left: 6px; color: #ef4444; border-color: #fca5a5;" (click)="del(r)">Del</button>
+                <button class="pill-btn" style="padding: 2px 8px;" (click)="test(r)">Test</button>
+                <button class="pill-btn" style="padding: 2px 8px; margin-left: 6px;" (click)="edit(r)">Edit</button>
+                <button class="pill-btn" style="padding: 2px 8px; margin-left: 6px; color: #ef4444; border-color: #fca5a5;" (click)="del(r)">Del</button>
               </td>
             </tr>
             <tr *ngIf="!pagedItems.length">
