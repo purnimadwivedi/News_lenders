@@ -29,7 +29,7 @@ import { RunLog } from '../models';
           <input [(ngModel)]="search" placeholder="Search jobs..." />
         </div>
         <select class="pill-select" [(ngModel)]="selectedStatus">
-          <option value="">All Statuses</option>
+          <option value="">All Status</option>
           <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
         </select>
         <div style="flex: 1;"></div>
