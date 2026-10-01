@@ -1,12 +1,13 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, DoCheck, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { RunLog } from '../models';
 
 @Component({
   selector: 'app-runs',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-header-row" style="justify-content: flex-end;">
       <div class="header-actions">
@@ -20,45 +21,85 @@ import { RunLog } from '../models';
     </div>
 
     <div class="card" style="margin-top: 16px; padding: 0;">
-     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Job</th>
-            <th>Status</th>
-            <th>Started</th>
-            <th>Duration</th>
-            <th>Lenders</th>
-            <th>Fetched</th>
-            <th>New</th>
-            <th>Classified</th>
-            <th>Failed</th>
-            <th>Emails</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of runs">
-            <td><span class="badge">{{ r.job }}</span></td>
-            <td>
-              <span class="badge" [class]="'status-' + r.status">{{ r.status }}</span>
-            </td>
-            <td class="muted">{{ r.startedAt | date: 'short' }}</td>
-            <td class="muted">{{ duration(r) }}</td>
-            <td>{{ r.stats.companiesProcessed || 0 }}</td>
-            <td>{{ r.stats.articlesFetched || 0 }}</td>
-            <td><strong>{{ r.stats.articlesNew || 0 }}</strong></td>
-            <td>{{ r.stats.articlesClassified || 0 }}</td>
-            <td [style.color]="(r.stats.articlesFailed || 0) > 0 ? 'var(--critical)' : 'inherit'">
-              {{ r.stats.articlesFailed || 0 }}
-            </td>
-            <td>{{ r.stats.emailsSent || 0 }}</td>
-          </tr>
-          <tr *ngIf="!runs.length">
-            <td colspan="10" class="muted" style="text-align:center; padding: 30px;">No runs yet.</td>
-          </tr>
-        </tbody>
-      </table>
-     </div>
+      <div class="table-toolbar">
+        <div class="pill-input-group">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
+          </svg>
+          <input [(ngModel)]="search" placeholder="Search jobs..." />
+        </div>
+        <select class="pill-select" [(ngModel)]="selectedStatus">
+          <option value="">All Statuses</option>
+          <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+        </select>
+        <div style="flex: 1;"></div>
+        <button class="pill-btn" (click)="exportCsv()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Export CSV
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th (click)="sortBy('job')">Job <span class="sort-icon">{{ sortCol === 'job' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('status')">Status <span class="sort-icon">{{ sortCol === 'status' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('startedAt')">Started <span class="sort-icon">{{ sortCol === 'startedAt' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('duration')">Duration <span class="sort-icon">{{ sortCol === 'duration' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('companiesProcessed')">Lenders <span class="sort-icon">{{ sortCol === 'companiesProcessed' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('articlesFetched')">Fetched <span class="sort-icon">{{ sortCol === 'articlesFetched' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('articlesNew')">New <span class="sort-icon">{{ sortCol === 'articlesNew' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('articlesClassified')">Classified <span class="sort-icon">{{ sortCol === 'articlesClassified' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('articlesFailed')">Failed <span class="sort-icon">{{ sortCol === 'articlesFailed' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+              <th (click)="sortBy('emailsSent')">Emails <span class="sort-icon">{{ sortCol === 'emailsSent' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of pagedRuns">
+              <td style="font-weight: 500;">{{ r.job }}</td>
+              <td>
+                <span style="font-weight: 500; font-size: 12px; padding: 2px 8px; border-radius: 12px;" [ngClass]="'status-' + r.status">{{ r.status }}</span>
+              </td>
+              <td style="color: #64748b;">{{ r.startedAt | date: 'short' }}</td>
+              <td style="color: #64748b;">{{ duration(r) }}</td>
+              <td>{{ r.stats.companiesProcessed || 0 }}</td>
+              <td>{{ r.stats.articlesFetched || 0 }}</td>
+              <td style="color: #10b981; font-weight: 600;">{{ r.stats.articlesNew || 0 }}</td>
+              <td>{{ r.stats.articlesClassified || 0 }}</td>
+              <td [style.color]="(r.stats.articlesFailed || 0) > 0 ? '#ef4444' : 'inherit'">
+                {{ r.stats.articlesFailed || 0 }}
+              </td>
+              <td>{{ r.stats.emailsSent || 0 }}</td>
+            </tr>
+            <tr *ngIf="!pagedRuns.length">
+              <td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">
+                {{ search.trim() ? 'No jobs match your search.' : 'No runs yet.' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>Rows per page</span>
+          <select class="pill-select" style="padding: 2px 24px 2px 8px;" [(ngModel)]="pageSize" (change)="currentPage = 1">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <span style="margin-left: 8px;">Total {{ filteredRuns.length }} runs</span>
+        </div>
+        <div class="pagination-controls">
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="currentPage = currentPage - 1">&lt; Prev</button>
+          <button class="page-btn active">{{ currentPage }}</button>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="currentPage = currentPage + 1">Next &gt;</button>
+        </div>
+      </div>
     </div>
   `,
   styles: [
@@ -71,16 +112,125 @@ import { RunLog } from '../models';
     `
   ]
 })
-export class RunsComponent implements OnInit, OnDestroy {
+export class RunsComponent implements OnInit, OnDestroy, DoCheck {
   private api = inject(ApiService);
   runs: RunLog[] = [];
+  search = '';
+  selectedStatus = '';
   busy = false;
   message = '';
   private poll?: ReturnType<typeof setInterval>;
 
+  sortCol = 'startedAt';
+  sortDesc = true;
+  pageSize = 10;
+  currentPage = 1;
+
+  sortBy(col: string) {
+    if (this.sortCol === col) {
+      this.sortDesc = !this.sortDesc;
+    } else {
+      this.sortCol = col;
+      this.sortDesc = false;
+    }
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredRuns.length / this.pageSize) || 1;
+  }
+
+  get pagedRuns(): RunLog[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredRuns.slice(start, start + this.pageSize);
+  }
+
+  get statuses(): string[] {
+    const s = new Set(this.runs.map(r => r.status).filter(Boolean));
+    return Array.from(s).sort() as string[];
+  }
+
+  get filteredRuns(): RunLog[] {
+    let res = [...this.runs];
+    
+    if (this.selectedStatus) {
+      res = res.filter(r => r.status === this.selectedStatus);
+    }
+    
+    const q = this.search.trim().toLowerCase();
+    if (q) {
+      res = res.filter(r => r.job.toLowerCase().includes(q) || r.status.toLowerCase().includes(q));
+    }
+
+    res.sort((a, b) => {
+      let v1: any = a.startedAt;
+      let v2: any = b.startedAt;
+      
+      if (this.sortCol === 'job') { v1 = a.job; v2 = b.job; }
+      if (this.sortCol === 'status') { v1 = a.status; v2 = b.status; }
+      if (this.sortCol === 'duration') {
+        const ms1 = a.finishedAt ? new Date(a.finishedAt).getTime() - new Date(a.startedAt).getTime() : 0;
+        const ms2 = b.finishedAt ? new Date(b.finishedAt).getTime() - new Date(b.startedAt).getTime() : 0;
+        v1 = ms1; v2 = ms2;
+      }
+      if (this.sortCol === 'companiesProcessed') { v1 = a.stats.companiesProcessed || 0; v2 = b.stats.companiesProcessed || 0; }
+      if (this.sortCol === 'articlesFetched') { v1 = a.stats.articlesFetched || 0; v2 = b.stats.articlesFetched || 0; }
+      if (this.sortCol === 'articlesNew') { v1 = a.stats.articlesNew || 0; v2 = b.stats.articlesNew || 0; }
+      if (this.sortCol === 'articlesClassified') { v1 = a.stats.articlesClassified || 0; v2 = b.stats.articlesClassified || 0; }
+      if (this.sortCol === 'articlesFailed') { v1 = a.stats.articlesFailed || 0; v2 = b.stats.articlesFailed || 0; }
+      if (this.sortCol === 'emailsSent') { v1 = a.stats.emailsSent || 0; v2 = b.stats.emailsSent || 0; }
+      
+      if (typeof v1 === 'string') v1 = v1.toLowerCase();
+      if (typeof v2 === 'string') v2 = v2.toLowerCase();
+      
+      if (v1 < v2) return this.sortDesc ? 1 : -1;
+      if (v1 > v2) return this.sortDesc ? -1 : 1;
+      return 0;
+    });
+
+    return res;
+  }
+
+  exportCsv() {
+    const data = this.filteredRuns.map(r => ({
+      Job: r.job,
+      Status: r.status,
+      StartedAt: r.startedAt,
+      Duration: this.duration(r),
+      Lenders: r.stats.companiesProcessed || 0,
+      Fetched: r.stats.articlesFetched || 0,
+      New: r.stats.articlesNew || 0,
+      Classified: r.stats.articlesClassified || 0,
+      Failed: r.stats.articlesFailed || 0,
+      Emails: r.stats.emailsSent || 0
+    }));
+    
+    if (!data.length) return;
+    
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(h => `"${((row as any)[h] || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `runs_export_${new Date().getTime()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
   ngOnInit() {
     this.load();
     this.poll = setInterval(() => this.load(), 10000);
+  }
+
+  ngDoCheck() {
+    const total = this.totalPages;
+    if (this.currentPage > total && total > 0) {
+      this.currentPage = total;
+    }
   }
 
   ngOnDestroy() {
