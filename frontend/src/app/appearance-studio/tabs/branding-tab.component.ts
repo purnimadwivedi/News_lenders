@@ -1,3 +1,4 @@
+import { DEFAULT_AUTH_LOGO } from '../../auth-logo';
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -59,7 +60,8 @@ import { BrandingConfig } from '../appearance.models';
             <!-- Logo Preview Container -->
             <div class="logo-box">
               <img *ngIf="draftBranding.logoUrl" 
-                   [src]="draftBranding.logoUrl" 
+                   [src]="draftLogoUrl" 
+                   (error)="onLogoError($event)" 
                    alt="Logo Preview" 
                    class="logo-img" />
               <div *ngIf="!draftBranding.logoUrl" class="no-logo-placeholder">No Logo</div>
@@ -431,6 +433,21 @@ import { BrandingConfig } from '../appearance.models';
   `]
 })
 export class BrandingTabComponent {
+  get draftLogoUrl(): string {
+    const url = this.draftBranding?.logoUrl;
+    if (!url || url.length === 9122 || (url.startsWith('data:image/jpeg;base64,') && url.length < 12000)) {
+      return DEFAULT_AUTH_LOGO;
+    }
+    return url;
+  }
+
+  onLogoError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== DEFAULT_AUTH_LOGO) {
+      img.src = DEFAULT_AUTH_LOGO;
+    }
+  }
+
   private appearanceService = inject(AppearanceService);
   private authService = inject(AuthService);
   private http = inject(HttpClient);

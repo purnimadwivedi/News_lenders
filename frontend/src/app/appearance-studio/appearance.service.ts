@@ -1,6 +1,7 @@
+import { DEFAULT_AUTH_LOGO } from '../auth-logo';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { applyThemeTokensToElement } from '../theme';
+import { applyThemeTokensToElement, removeThemeTokensFromElement } from '../theme';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AuthService } from '../auth.service';
 import {
@@ -19,7 +20,15 @@ import {
   resolveEffectiveAppearance
 } from './appearance.models';
 
-const DEFAULT_LOGO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAYHAwQFAgEI/8QAGwEAAgMBAQEAAAAAAAAAAAAAAAECBQYEAwf/2gAMAwEAAhADEAAAAf1D9Z1LAzhYGcGBnBgZwYGeL+Pt3clB2RUXM0Z17QYGcGBnBgZwYGcGu+k2fBnaBoAHwInzK71MLvbrqzJ9Rw804hVfZXLHOFELemtqZ/nD9CWlXujQZ0AAMAjJnwZ2gaAGHNEefoqroWLVOG3kg0tvfn56/M6Oy1wunkivP0fbs4GW7pJqNVkwAAwCMmfBnaBoAjtL2xUeH3WztfepXWe56y5Lao3+X3uP1culxJNyqyy4Wn3OFVW9sTetLL3vz8LSqAMAjJnwZ2gaAFeWHh5OuDV5usPud/fc3o8N3PpYGs8f7WTm6e5jiFxWtT2PprsgAAGARkz4M7QNADz6I/PWCyOV8++ixjPZVeThIYR7+cnX1OLdEIsK+E/oGA2Va1OQaXMAABgEZM+DO0DQAAACAz5y9X5znNgdOkvfHs0mYBgAAAGARl5iUvqGUbBkldWKKK6UZ0WXR7jsiT1Il9hbVlSGtLLR8jXJiDJFh87rNmY1F0EWu+aqfuJRbTakGxxtVlssCE9yobeqFxkE+gMuaq358kjXiyKZnacM1UiZzLNqawEV534/YjJN9RuL2NyLGpzX3chYc6yYLbYMOYnqvaMlQ29UMoyDucPZaiFsVZcYU94lMSZ25Rm2EVdPYFYrK6nsLyhbsOkO7F1lxJdEpKW8ib85EMt6l5CyynB58STtdGexUVu+ZKB69j+XGrbawZ0c2uLZ8g0t/wDpidSbK1ya5uHGFNe7KxhW0ylW6D59JweH3RrNU78tHYD62kJ4IlLYfV2su8aPn28dDr43j7Y9jn/AGL6P3Q2Pbyx92uZ/GXN9bWtPz8euVv+Pv46Ma6qfU1tfP0c/nH95Hh7ybS+xYJ89LWq+fQQAAAABjyAwEAAAAAAHwB//8QAKhAAAQQCAQMDBQADAQAAAAAABAECAwUAETEGEiATFBUQFjAzNCEjMiX/2gAIAQEAAQUCzWazWazWazWazWazWK9qP1ms1ms1ms1ms1ms19E5/FbXkdckpc009N1ChH415TnzJ6lFGlf1dHgBstsNbC+zsMgj9adyTVYLOrmLjOqxFxru5vkvKc+SrpC17i8qrWStluyGFWVdr7cDcjCry7cc/Hf8hu7xfJeU58pl1DPBKxKeceAu6qfaOGrmk1wT0SggrmurKusfZTXzxEWEeQl1M7urfJeU58ri5aG8qyrC4J4msnAsn1+QxJVHLEowBIziXmWTYolhcyWsLra2EW+iWx8l5TnxuLVtbBJI6V8IspOICZC/5OeRo/oojYHrHN2JGw/2rZ4DjJpQp4G50/c+6Z4rynPj1BUe9jwGylr8XqM56wSXBORyK50ZrkimmRjZPlo2fcB8TjLgg+LOnKdVXxXlOfK7ovUnk6XFiZI5kRMPvb6VFYQQ8hZRJyGiTEizVKzlOLIE6eDNhG6cT5NE7U8V5Tnym/UZaEExVNeliTb2UcEYBcIdcHHuhiLhlpqa19ot5WRhOBspq51O5z6/yXlOfJybQpvaU1ytUMOQ+e1EaCbXM302MxJZ7WqfWzK5XY7/AJAZ6YfkvKc+ZfS7p53dJlJlQO6qGuyGFWTSZWRCvSMkuRtmA3pQpcZ0i9cjb2M8l5Tn8Vz06k2OarHU/TqzY1qMb+FeU5/HJWjykfjXld6XqFzVr7ZTp8NuvakJ1Eu2uR7cKIQWD7iXK2099JnGF3kUKyXpLs+aLyDqB6KOTGUz6TEMHYR1DnzhOR9QTNyN/qxpzN+7p/8Atw2T1S8pCPWEzqAn/OUb+07LmyV78FqZykkoJ2o9jo3V00sJCcFEtFhKLeXJja8h6SwyQ4J/KnM37un/AO2d3ZC5duykI9EtzuxpU/uCMAf6Zhs3txVXa04SFT8fSxrGnYIFEGzL4nvn5ysrGDR5LCyZrWJG1OZv3dP/ANtrJ6YOPD3UNcrHWNhut1lkJ7UVi9r7l+67KBug8sLZQpvuJ2fcTsr7Zxs1iuzq9qPM+q8pzN+7p/8At6gfoXB4EUCaJYJVeqpUDe4L6gZsTC/99LnT024ctK6YwoionGizp5m5rWP0zxpfRnY5Ht+i8pzN+7p/+3qKTcsad0jG9rL8bsmykG9EW4Z3gZUanrCIHDTBlODnGOiKa56MS6sWzplOL7YW9CWRmV9u8NG3YrkK6gja2B6yQJzN+7p/+26f3n17PUMywF92NAE95bW9rT9ezzp1/wDrsq1prZxpBnIusWR7sRO5aunXeKm8saRduarF+gv8qc+2ixkLI1UeNytgjYv07U3j2NkT20WMiZH9HxtkR9MLIvwYmQhwj+Mo0U2fDi5FXDxZxk71jhiszWBknRjDAntNz5CeW8Ul3ypV2waUwz/y57FoYYFk05xF5HBLDKk8VvKSPCFPM0QW4YROXbMEnhvoppDbFoainMLgAtWWDhbZhhBN1GPLOcyCB1zAmIvck7VfBCAdIFa17iQqkV0ThxJI7dwknzDwJlneBKtBYBSzgiiyR2Vlsd4TFjEsoXEBSArPUwClkEyByut2VZCQ2I07TK8KSKGnFeIHTiSCNmCLhkkr1+JioZ0Vec3m83m83m83m83naiu3m83m83m83m83m83m839P/8QANREAAQMCAgYGCQUAAAAAAAAAAQACAwQREhMFICExQVEQIjAyYbFCcYGRocHR4fAUIyRSwv/aAAgBAwEBPwFXV1dXUMT534Ixcqp0TLBHjb1uaurq6ur9B1ItD0uEFwVLSvpatwaOoR9Eycy5gA7uxUmi2yR46pvWK0rQxUga6LjqnpghfPIGMCp5zWRujlaWLMmiZlk7RuP9hy9aEmFzi02Bde/hYKMPmlzpDYDcPmVpCSatBa2M2bt1T06FbCIcTO9xUhqsRDGjD4p1m3At7CbeVh8FEX4tqhx3LoA0n1m/koTKW/vDb4LSTYW1BEP4dQ9NLUPppMbFA2WnjdJVvusL3x5gbYeiP9FZYuQBcB1vZYeSjdlTZUw6x3O5/dVzquiDjmXadg1TqR6SpXMAL1T1b6mqLW9wD6KOF0Wa6/eN1SaSaY/5RwuC0xWQ1DWNiN9U6tPUyUr8cZVTpp0keGEWPH7a57U9qe1Pa0mVgOO28b+XGyy4P05ffrJ5hLrC2xnxssFMMu3MX+awQZJPpbfMKqgjjha9vH6JjozC1rrb/bZOjpmybd1ufH1p0VNmgN3bePu2+KkZA0SYfC35xTY6YzObwHj79qgipHNON3Ht/wD/xAA2EQABAgQCBQoEBwAAAAAAAAABAgMABBESEyEFMDFBURAgIjJhcYGRscFCoeHwFCMkUoLC0f/aAAgBAwEBPwHmuuoYRe4aCJbSzT7lihbw1bul5q4hJA8ImplE1KpKuuDCmA3hEnrUMTWk1NuWSquiI0XPOzZUl3dqH3kMouWYfYEmtLjSgqA2y6vEAyO0ftPHujCqEhaakJpTtqR7QsoZawW8ydp9hEg21JkLU4Kqy1GmFPY1q+ruhsSttVqVd2QmqiFGv8gK+tT84dsty+/TKHrMkPlQHcKQ8Ggr8o5dsaNU8qXBe+xz5mXRMt2rh5TUw4luURSKoQ5hlVT8R/qIxTQEmhKajvqfUGHEYjOKyeiNqeH0iRRKThCcOihmeGpc0dNBRoiH5REvKhSuuTC3Uu4SadWgia0coOfphVJjREo7LqWp1NK01UxLtzKLHBEtoZLblzpqN31541VOUao8o5Dqxz68yvJNly8WV2HZxypWL3vxATTowgOhNTXNXyrBXMEOV4GntF7+MB8OXoYlnnHHVoVu/wBhaXA8pSa7PCsJcmFN+PDd3Ql2ZwiVbct3n5Q2t9RRd219u6FOTAZCt57PKHnZpJFid2v/AP/EADkQAAEDAQUFBAkDBAMAAAAAAAEAAgMRBBASITETIjJBUTBhcXIUIzNAQlKBkaEFIGIkQ5KxU6LB/9oACAEBAAY/Au0DS4Yjy94wt35ui2znnadUIbRuycndfdHxnGXNyyC3YifFPcG+jtOQdWpUkWIv0OIrRRM0xOARwn0nB85pkt6AjwKzDx9ECOfuE56vN1eKI8TU+SM1aWhWjrmoHHIB4KMURpCP+1xUR/j27z3ISvYWtkzBQNpbib16Lbw71nd05KadrjtY/gVqz5qS1SOLaGjR1VBlGOJyZDZ270eRcEWxNxlQnu7dkLSMRO93BGJ8jS1FkT9q3kQjZrUwmA6tdyTJGO2linyqv1CDXDKwDvUH6fGaMhFZHr0KwDc0c8alYH+rP8lhbM0u+J3VPgqNi7gcO2yzldwhF7zVx1KOyjMlPlTXbCRrhpksFtse2HhQpzInnYu4oZcqfVFzd5uRr1oiwzYIiauwZueqWGxYT/yPzKL3wyPee5YpYXRt6uuEEp9a3Q9e120ftmfkXO2VN5ZO+wWLHsmdXtCczb+lOHEQ0BoWBubT/wCqu0MLHHKQCrVihnE8fVjQqPdQ9CFs5aUuFrlHkHbNniFA5wDwP9ovfO5rRzWKzk4WndJVHyERDiPIJlgsmVnb7R3zK3zRmgErMHcAmy4cditIqWoWixyE2Z2YI5eK2s2ZOtEJIp3EFPBzs8dNeaoMh2z/AATYJHbrPytmX4GjMr0Kx7rBxOCtFD/UvyHcrWf5BOs8xpI01jWxn3rO/UHkmywvBjk0anGI68ionPNXHM9uQph0eVUGh7kI4xnzPROhaagAK0GnVQsOjnAKhziPC5CpJoioh3e4SSNlAxGtCspIyniaMCnxjmpJIziYQM0Y2yERn4VC45Na8EpwgZtq5ZrOSMLfmH0TW9BT3MzWbJ/NnVFrhRw5ITWkUZyZ1Qa0UA93bM6MGQc+1yzKI2WnejHgw5VudEGYqL2X5QI0NzpDyXsvynNLMNBfhj9Y78LdIYvaD7KkrKjqFijNRfikdhCpFH9XLUfZb7Q5Nf8AMK3SeYp3lukd33YTxMyubCPE3AfMLjBGd0cRuxAYW9SqtIci1woRyQ2QLq6tuMjuSxPPgOl1RC6i32FviovKLpPMU7yp7ugRN2E8L8kSeSfJ1uiPepH9BdV3Ay9prhcOaowZ9bhEOFtwe4VlP4uLXtqCg0aDK6TzFO8qkP0ujlpvNP4QcNQmFusl1mFM86pp6FA9bierrsGDFkvZD7r2Q+6wbPCKVqpvFRA6V/dJ5ineVNb8xubGdC1OYdQUATkEK8Lcyg7obmu6C58fMGt1YwKU1KMj8OEd90jumSl780x/QoOGh/bJ5ineVRs6Zpo6lAdE2UaO1uxHien/AHu2Z8E6N2oQkb9Qqtd9FmaLYxmreZuFeJ2ZQmbq3W7A4Y4/9Ljp9EdiMZ6qNx1IrdJ5ineVO7slEO+5zOfJNic2hrmgBoFLX5bpW96qMpBoVhkbRZGize4+JVBmhLOPBt5kg/wVHCnjfF5Rd7Nv2VWsAPcqljSfBVDAD4X1pndRwr4r2bfst1ob4XUc0OHeuCngVwn/ACW4wDv/AG77A5cH5WUY+tz3DUCqjtkmB8DuIDULbHMHTvTxhMcjOJjuSMAqImcgEIce7hrhopI9m95ZrhTrRG/DlUOoopZKuxUGSkbgdG9mrXKRuzc5sfE8aBNeNCjLC5oDRmCEZ7S9uGlcgmxmN8ePgLviWy2bnvw4qNUQwODZMg49eia3CZJHaMajK2opq08k4RsdQfEU6JjHbpoTyCc0RukDONzdGps2sbuam57OiB6qRo1IUdiexscI4n11TWRcUZBA6qSR8Oxc7+Vaq0zkere0AFCenq8FKq3uw5Sso1ejU9bgpRWaNo3mOaSrTK4bj6UKtcMUo9b/AG8JqomnUNUsbM3EZL0Y5Ow0VmM8QibBzrxIz09XssNe9WNuHOOUud4KG1QM2paCCyqndIKSTHFh6IMkFHVKn2gpikLgrWyKISR2nPFXhXo2pDclZCdf73aVoK9e3//EACgQAAIBAwMDBAMBAQAAAAAAAAERACExURBBYSBxoTCBkbHB8PHh0f/aAAgBAQABPxALnI7TkdpyO05HacjtOR2nI7TkdpyO05HacjtCyKpAXBOROR2nI7TkdpyO05HacjtOR2nI7TkdpyO0Sp5H8dVZt7HNRZmkQ9oGhMHpsY9/ZggEbHr/ABeRPI/gUP8ABWjmWfH2fxmOCTn3bAEcS66+xuD0bIad4tdQ1hRZAaAoQ9hRt7xhoLxZ7+kWCIFNPlmlpLtn6/InkfWT+gWGJoNm9VFBbBaiLNvuQMtNdzM+I9LpiMlqHhQPQBbEHGDhR+IBuuku0a2hgFUdb0K+vyJ5H16BZOfZgimmxl443gEB1lq9RNAU6gJ6PCxvxRqW3VLQhA2Uo+ZT9Kup2HzrCyviTA2cso9DqAx8mIlqToF5/cxWRoWoiK8fX5E8j69eI7KTI3S8cyl+Qw4tNI3w01pdBN5q2vY2NV1MmDSUwCPIXTmEF8QeJA6MSd4F43BPLVeuWkH9zGeE663m5ZPgPAL1YfB7/QDiYrQhS7N79W7Nfq8ieR9V3AnYu7g1j7VdYZQepsMX05c2J1Mw0ywJDvCo26Gh9mcRZqVjq91u237S9ZByp0TJMAcRdNMe4po94YYAUBg0DiZORWCWCoUJs1B6MMToMSv8mPq8ieR9RGxRdl9xmIgQo1E1JV0qvxibO0NV8kGQah2PYFlHKU8Ot0vsytGGmqb7Qo6xpow+jCMIt7QInLAGviw/oLJp90vMWlOR7RaLdIxjNeHqX/Hv9XkTyPrqkMbQCgmFCJQJUizIg6pFwoNN3YuIr9o5ulXISuZYq4Lyhj7yt17y6dLswvGs1Z9WTkZ114lTrAzQbBDq1kyPqJGvsLCvBjoNQL4aBQG31eRPI+sBtSlNRplnVVelDi3WpkQwHGdB+ZzoofjB68se0ZunsvXeNFRT8lStKutApjHFnzMDH4onrXUv+48lqOWnO4z8QG40S21hrcuJbMO1VP1+RPI+vCl2FMxTos6VAs90Yj5I9J+qdUnf3isnGu2PhcdzSwNbPtFYRN1CA1C4XmrCeBPMLAlLINi9I7Gylm5VV3qX9fkTyP4Om7QIrbpCQG8AIDW3bcu5qVtC3koVbQkrKQZLtccwDyGaAFYq78q7Yue0yYI9CXtKIu3DVPmCyoA70V9fkTyP4gYBHCMVa70HObP3lHDH5NovnG7/AAHHWGxCjoD+LyJ5H8ghgaRq9F9oAACg6H8fkQNYJdoXoQydlT1GnpCArV3ukK09MAlisyg7cwjBAUWM+0J8Ah1PQsa2W1baf7b+orwoi+S/16OEAyq0E0n6Q0Ha4j2CP3kMIg5K78S0WcvXZVRGo1Oq2T1KLeq19iUdJeY9wjRBOhRrxEeVBt4IZtIK6WXPOn6DdP0Wz0wGslnGPx6ZaVt1HU9ED6MBqPR59MjUAfgX0aY7qD/CaTQAotU3CJyBbez7RUzUGkiWBALOtftEuALTaO5i5F0I/wDS2nQ2ICBTABMHUsQL9oQsQ4qn6zaedP0G6fotkylXiSf61jcUAog6O8w+Gjf9GLdTE4JV6Pfh/SUgNYesYxrH7Urel6HquPzETKtWqzAVTNM1HxUNmAoDQ9Mbygs7EFBtvH59L0tB5/8AKhlWgDddJQrUOh6CABQUcQG2UCAZSDsGk86foN0/RbJnyqu9UMHBNdJUOp/8lZhtskqnCKOaa/ZjE7QAbwBLQnyCf5srHwofvCX6HgzC/B6HCUXs1n+w/qf7D+orgKs5NCO/a/BBfuynsWfb6PInnT9Bun6LZMspS1vYYFQFtYJUNAbkua5ybvF4Crpxf6Vm0diDT6C9rQhpbksazj0D0Gk8v89CQkFNcPPryly0dPQRlnT7/wCQURD27UTbgF9nD4g7yjdR9fInnT9Bun6LZMt9A7PxMB3gvdCdAqewmKrCjAOr73FoV0lPfdSaCw8TFV/aNwyEolV3iSKaKQpo6JMMhV0OsQfV6rSbVGhrlEEywa1wVQf3KVALXAS5mOauh+GOPPQ1el+JqcMQJbi1ew7RmDF4V4zE7RU1HIlsQAW03TM86agexyiFgm8cImsTGm2fzHtGdQ2z+PShA0L9mSN3mDFTLn2hZ0AbBAQ0R3VBgFL8Rm0sQ7VBaB9HXhiuI6LXzpPY+Ke5ONxk8sKJOg2+J7n8Rd4ACjBAbCpHRJbqz1Q8orDWlB95Yx2BlTQhQEpMD7TyIqTTapyxapFIRqNnCxFZpQqMJ6rgFQzJ6ZAveQT/ADMVSWpEv04FlBHLxbo3xD4dG8qfeUyf0yd30mtwKpqfMfpi9BBKVMaDc7xZQBgDQlCmfdLDEKpYXdLjec8Rkyws6AcsEEgBV3V71EXM4xmW6wXpCYBLty4zBQvxKjVNUBDluXqpTO6a6wavDNcwYWBClumq4lS3FmgCGnJCuRydaYhriS203iZm0Y91luJVY5AsrhtnMrOVKk9mI4zDEJ10ZYTjIPfHxL+TA1riPiYoNoGZENZSvMc7LVYJS1xGCUCLb7PtFsCfRLgL8spPP0vArG7M4KlmpfSClQ/dTEa6ogl6RpKh6Fim9eF3mUMywVsq0hC6WC2Lx8wElxUXoxXxAeN4poFcaws9oFVLa6QT7YgowcUbQWg3iMtyCxE6FIw/qTsNaQ5KTGrZhi5o6DMIapXuwYN7swzSSou1UVDdDKuS6dcwC93GKUE0VUuXvqVure0KI0gdUmkqNmiNq04lzXIjaU2m4EvoyarVzPYWzW4udAxOg0uDU5HecjvOR3nI7zkd5yO85HecjvOR3mnGJYPmcjvOR3nI7zkd5yO85HecjvOR3nI7zkd5yO85HecjvFuf/9k=';
+export const DEFAULT_LOGO = DEFAULT_AUTH_LOGO;
+
+function isCorruptedLogo(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return true;
+  if (url.length === 9122) return true;
+  if (url.startsWith('data:image/jpeg;base64,') && url.length < 12000) return true;
+  return false;
+}
+
 
 export const DEFAULT_APPEARANCE_STATE: AppearanceState = {
   theme: {
@@ -139,8 +148,21 @@ export class AppearanceService {
   private syncChannel: BroadcastChannel | null = null;
 
   constructor() {
+    this.cleanupCorruptedLocalStorage();
     this.initSyncChannel();
-    this.applyToDOM(this.savedStateSubject.value);
+    if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
+      this.applyToDOM(this.savedStateSubject.value);
+    } else {
+      this.clearFromDOM();
+    }
+  }
+
+  get themeMode(): string {
+    return this.savedStateSubject.value.theme.mode || 'light';
+  }
+
+  get isDark(): boolean {
+    return this.themeMode === 'dark';
   }
 
   get isOpen(): boolean {
@@ -160,7 +182,11 @@ export class AppearanceService {
   }
 
   get branding(): BrandingConfig {
-    return this.savedStateSubject.value.branding;
+    const b = this.savedStateSubject.value.branding;
+    if (b && isCorruptedLogo(b.logoUrl)) {
+      b.logoUrl = DEFAULT_LOGO;
+    }
+    return b;
   }
 
   get carousel(): CarouselConfig {
@@ -184,6 +210,26 @@ export class AppearanceService {
    * When an Admin saves branding changes, all active users belonging to the tenant
    * receive the new branding immediately without manual reload or relogin.
    */
+  
+  private cleanupCorruptedLocalStorage(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('lender_news_tenant_') && key.endsWith('_branding')) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && isCorruptedLogo(parsed.logoUrl)) {
+              parsed.logoUrl = DEFAULT_LOGO;
+              localStorage.setItem(key, JSON.stringify(parsed));
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   private initSyncChannel(): void {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
@@ -215,9 +261,11 @@ export class AppearanceService {
   public refreshFromTenantStorage(incomingBranding?: BrandingConfig): void {
     const freshState = this.loadEffectiveState();
     if (incomingBranding) {
+      const safeLogo = isCorruptedLogo(incomingBranding.logoUrl) ? DEFAULT_LOGO : incomingBranding.logoUrl;
       freshState.branding = {
         ...freshState.branding,
         ...incomingBranding,
+        logoUrl: safeLogo,
         applicationName: incomingBranding.applicationName || incomingBranding.appName || freshState.branding.applicationName,
         appName: incomingBranding.appName || incomingBranding.applicationName || freshState.branding.appName,
         appTitle: incomingBranding.appTitle || incomingBranding.applicationName || freshState.branding.appTitle
@@ -528,7 +576,11 @@ export class AppearanceService {
     const tenantConfig = this.getTenantConfig(tenantId);
     const userPrefs = this.getUserPreferences(userId);
 
-    return resolveEffectiveAppearance(DEFAULT_APPEARANCE_STATE, tenantConfig, userPrefs);
+    const effective = resolveEffectiveAppearance(DEFAULT_APPEARANCE_STATE, tenantConfig, userPrefs);
+    if (isCorruptedLogo(effective.branding.logoUrl)) {
+      effective.branding.logoUrl = DEFAULT_LOGO;
+    }
+    return effective;
   }
 
   private getTenantConfig(tenantId: string): TenantAppearanceConfig | null {
@@ -537,6 +589,12 @@ export class AppearanceService {
       const stored = localStorage.getItem(`lender_news_tenant_${tenantId}_branding`);
       if (stored) {
         const branding = JSON.parse(stored);
+        if (branding && isCorruptedLogo(branding.logoUrl)) {
+          branding.logoUrl = DEFAULT_LOGO;
+          try {
+            localStorage.setItem(`lender_news_tenant_${tenantId}_branding`, JSON.stringify(branding));
+          } catch (_) {}
+        }
         return {
           tenantId,
           branding
@@ -579,24 +637,85 @@ export class AppearanceService {
     }
   }
 
+  public isAuthRoute(): boolean {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname || '';
+    return path === '/login' || path.endsWith('/login') || path.includes('/logout') || path.includes('/session-expired');
+  }
+
+  public applyCurrentToDOM(): void {
+    if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
+      this.applyToDOM(this.savedStateSubject.value);
+    } else {
+      this.clearFromDOM();
+    }
+  }
+
+  public clearFromDOM(): void {
+    if (typeof document === 'undefined') return;
+
+    // 1. Remove theme tokens & classes from document root, body, and app container
+    removeThemeTokensFromElement(document.documentElement);
+    if (document.body) {
+      removeThemeTokensFromElement(document.body);
+    }
+    const appEl = document.querySelector('.authenticated-app') as HTMLElement;
+    if (appEl) {
+      removeThemeTokensFromElement(appEl);
+    }
+
+    // 2. Clear dynamic injected styles so no font scaling or element styles leak
+    const styleTag = document.getElementById('appearance-studio-dynamic-styles');
+    if (styleTag) {
+      styleTag.textContent = '';
+    }
+
+    // 3. Reset document title to base unchanged auth title
+    document.title = 'IMGC Lender News Portal';
+
+    // 4. Reset root lang & dir
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+  }
+
   private applyToDOM(state: AppearanceState): void {
     if (typeof document === 'undefined') return;
-    const root = document.documentElement;
+
+    // Strict Authentication Guard:
+    // Appearance Studio customization must NEVER affect the Logout/Login/Authentication page!
+    if (!this.authService.isAuthenticated() || this.isAuthRoute()) {
+      this.clearFromDOM();
+      return;
+    }
 
     const isDark = state.theme.mode === 'dark';
     const primary = state.colors.primary || (isDark ? '#3b82f6' : '#2563eb');
     const accent = state.colors.accent || (isDark ? '#60a5fa' : '#3b82f6');
 
-    // Centralized theme tokens application via theme utility
-    applyThemeTokensToElement(root, state.theme.mode as 'light' | 'dark', primary, accent);
+    // Centralized theme tokens application strictly scoped to the authenticated app container
+    const appElement = (document.querySelector('.authenticated-app') ||
+                        document.querySelector('.app-layout') ||
+                        document.querySelector('.app-shell')) as HTMLElement;
 
-    // Dynamic browser title with centralized app branding
+    if (appElement) {
+      applyThemeTokensToElement(appElement, state.theme.mode as 'light' | 'dark', primary, accent);
+    } else {
+      // Container not yet mounted in DOM; schedule for next frame
+      setTimeout(() => {
+        const el = document.querySelector('.authenticated-app') as HTMLElement;
+        if (el && this.authService.isAuthenticated() && !this.isAuthRoute()) {
+          applyThemeTokensToElement(el, state.theme.mode as 'light' | 'dark', primary, accent);
+        }
+      }, 50);
+    }
+
+    // Dynamic browser title with centralized app branding (ONLY for authenticated app)
     const title = state.branding.applicationName || state.branding.appName || 'Lender News';
     if (document.title && !document.title.includes(title)) {
       document.title = `${title} | Risk & News Portal`;
     }
 
-    // Dynamic browser favicon update
+    // Dynamic browser favicon update (ONLY for authenticated app)
     if (state.branding.faviconUrl) {
       let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
       if (!link) {
@@ -614,15 +733,6 @@ export class AppearanceService {
       large: 1.1
     };
     const scale = scaleMap[state.display.typographyScale] || 1.0;
-    root.style.setProperty('--font-scale', scale.toString());
-    root.style.setProperty('--font-size-body', `calc(14px * var(--font-scale))`);
-    root.style.setProperty('--font-size-label', `calc(12px * var(--font-scale))`);
-    root.style.setProperty('--font-size-heading', `calc(24px * var(--font-scale))`);
-
-    const lang = state.display.language || 'en';
-    root.setAttribute('lang', lang);
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 
     // Border Radius tokens
     const radiusMap: Record<string, string> = {
@@ -635,10 +745,21 @@ export class AppearanceService {
       soft: '20px'
     };
     const rad = radiusMap[state.display.borderRadius] || '8px';
-    root.style.setProperty('--border-radius', rad);
-    root.style.setProperty('--card-radius', rad);
 
-    // Injected dynamic styles
+    if (appElement) {
+      appElement.style.setProperty('--font-scale', scale.toString());
+      appElement.style.setProperty('--font-size-body', `calc(14px * var(--font-scale))`);
+      appElement.style.setProperty('--font-size-label', `calc(12px * var(--font-scale))`);
+      appElement.style.setProperty('--font-size-heading', `calc(24px * var(--font-scale))`);
+      appElement.style.setProperty('--border-radius', rad);
+      appElement.style.setProperty('--card-radius', rad);
+    }
+
+    const lang = state.display.language || 'en';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+    // Injected dynamic styles: STRICTLY SCOPED to .authenticated-app
     let styleTag = document.getElementById('appearance-studio-dynamic-styles') as HTMLStyleElement;
     if (!styleTag) {
       styleTag = document.createElement('style');
@@ -647,43 +768,58 @@ export class AppearanceService {
     }
 
     let css = `
-      :root {
+      .authenticated-app {
         --font-scale: ${scale};
+        --card-radius: ${rad};
+        --border-radius: ${rad};
       }
-      .card, .banner-chocolate, .dash-chart-card, .table-wrap, .stat-card {
+      .authenticated-app .card, 
+      .authenticated-app .banner-chocolate, 
+      .authenticated-app .dash-chart-card, 
+      .authenticated-app .table-wrap, 
+      .authenticated-app .stat-card {
         border-radius: var(--card-radius) !important;
       }
-      body {
+      .authenticated-app {
         font-size: calc(14px * var(--font-scale)) !important;
       }
-      h1, .dash-main-title {
+      .authenticated-app h1, 
+      .authenticated-app .dash-main-title {
         font-size: calc(22px * var(--font-scale)) !important;
       }
-      h2, h3, .section-title {
+      .authenticated-app h2, 
+      .authenticated-app h3, 
+      .authenticated-app .section-title {
         font-size: calc(16px * var(--font-scale)) !important;
       }
-      button, input, select, textarea, label {
+      .authenticated-app button, 
+      .authenticated-app input, 
+      .authenticated-app select, 
+      .authenticated-app textarea, 
+      .authenticated-app label {
         font-size: calc(13px * var(--font-scale)) !important;
       }
-      td, th {
+      .authenticated-app td, 
+      .authenticated-app th {
         font-size: calc(13px * var(--font-scale)) !important;
       }
     `;
 
     if (state.display.density === 'compact') {
       css += `
-        .content { padding: 12px 18px !important; }
-        .card { padding: 10px !important; }
-        td, th { padding: 6px 10px !important; font-size: 12px !important; }
+        .authenticated-app .content { padding: 12px 18px !important; }
+        .authenticated-app .card { padding: 10px !important; }
+        .authenticated-app td, .authenticated-app th { padding: 6px 10px !important; font-size: 12px !important; }
       `;
     } else if (state.display.density === 'spacious') {
       css += `
-        .content { padding: 28px 34px !important; }
-        .card { padding: 22px !important; }
-        td, th { padding: 12px 16px !important; }
+        .authenticated-app .content { padding: 28px 34px !important; }
+        .authenticated-app .card { padding: 22px !important; }
+        .authenticated-app td, .authenticated-app th { padding: 12px 16px !important; }
       `;
     }
 
     styleTag.textContent = css;
   }
 }
+

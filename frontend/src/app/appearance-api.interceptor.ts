@@ -1,3 +1,4 @@
+import { DEFAULT_AUTH_LOGO } from './auth-logo';
 import { HttpInterceptorFn, HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { of, throwError } from 'rxjs';
@@ -8,6 +9,14 @@ import { AuthService } from './auth.service';
  * Validates authorization on the request layer and enforces 403 Forbidden
  * when normal users attempt to mutate branding or logo resources.
  */
+
+function isCorruptedLogo(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return true;
+  if (url.length === 9122) return true;
+  if (url.startsWith('data:image/jpeg;base64,') && url.length < 12000) return true;
+  return false;
+}
+
 export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.includes('/api/appearance')) {
     return next(req);
@@ -32,7 +41,13 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem(tenantStorageKey);
       if (stored) {
-        try { tenantBranding = JSON.parse(stored); } catch (e) {}
+        try {
+          tenantBranding = JSON.parse(stored);
+          if (tenantBranding && isCorruptedLogo(tenantBranding.logoUrl)) {
+            tenantBranding.logoUrl = DEFAULT_AUTH_LOGO;
+            localStorage.setItem(tenantStorageKey, JSON.stringify(tenantBranding));
+          }
+        } catch (e) {}
       }
     }
 
@@ -43,7 +58,7 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
         tenantId,
         branding: tenantBranding || {
           applicationName: 'Lender News',
-          logoUrl: '/public/images/1631310679243.jfif',
+          logoUrl: DEFAULT_AUTH_LOGO,
           primaryColor: '#2563EB',
           secondaryColor: '#0F172A',
           version: 1

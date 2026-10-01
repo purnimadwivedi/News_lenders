@@ -52,15 +52,62 @@ export function applyThemeTokensToElement(
   element.style.setProperty('--sidebar-background', tokens.surfaceElevated);
   element.style.setProperty('--header-background', tokens.surface);
 
-  // 3. HTML attributes & Body theme classes
+  // 3. HTML attributes & element theme classes (strictly scoped to the element)
   element.setAttribute('data-theme', mode);
-  if (typeof document !== 'undefined' && document.body) {
-    if (mode === 'dark') {
-      document.body.classList.add('dark-theme');
-      document.body.classList.remove('light-theme');
-    } else {
-      document.body.classList.remove('dark-theme');
-      document.body.classList.add('light-theme');
+  if (mode === 'dark') {
+    element.classList.add('dark-theme');
+    element.classList.remove('light-theme');
+  } else {
+    element.classList.remove('dark-theme');
+    element.classList.add('light-theme');
+  }
+
+  // Ensure root/body NEVER retain data-theme or dark classes if applied to a scoped element
+  if (typeof document !== 'undefined' && element !== document.documentElement) {
+    document.documentElement.removeAttribute('data-theme');
+    if (document.body) {
+      document.body.removeAttribute('data-theme');
+      document.body.classList.remove('dark-theme', 'light-theme');
+    }
+  }
+}
+
+export function removeThemeTokensFromElement(element: HTMLElement): void {
+  if (!element) return;
+  element.removeAttribute('data-theme');
+  element.classList.remove('dark-theme', 'light-theme');
+  if (element.style) {
+    for (let i = element.style.length - 1; i >= 0; i--) {
+      const prop = element.style[i];
+      if (prop && prop.startsWith('--')) {
+        element.style.removeProperty(prop);
+      }
+    }
+  }
+  if (typeof document !== 'undefined') {
+    if (document.body) {
+      document.body.classList.remove('dark-theme', 'light-theme');
+      document.body.removeAttribute('data-theme');
+      if (document.body.style) {
+        for (let i = document.body.style.length - 1; i >= 0; i--) {
+          const prop = document.body.style[i];
+          if (prop && prop.startsWith('--')) {
+            document.body.style.removeProperty(prop);
+          }
+        }
+      }
+    }
+    if (document.documentElement) {
+      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('dark-theme', 'light-theme');
+      if (document.documentElement.style) {
+        for (let i = document.documentElement.style.length - 1; i >= 0; i--) {
+          const prop = document.documentElement.style[i];
+          if (prop && prop.startsWith('--')) {
+            document.documentElement.style.removeProperty(prop);
+          }
+        }
+      }
     }
   }
 }

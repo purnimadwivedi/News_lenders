@@ -1,3 +1,4 @@
+import { DEFAULT_AUTH_LOGO } from '../auth-logo';
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppearanceService } from './appearance.service';
@@ -303,7 +304,8 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
           <!-- Real Logo & Brand Title -->
           <div class="real-brand-header">
             <img class="real-brand-logo" 
-                 [src]="draft.branding.logoUrl || '/public/images/1631310679243.jfif'" 
+                 [src]="previewLogoUrl" 
+                 (error)="onPreviewLogoError($event)"
                  [style.border-radius.px]="draft.branding.logoBorderRadius || 8"
                  alt="Logo" />
             <div class="real-brand-titles">
@@ -1188,6 +1190,21 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
   `]
 })
 export class LivePreviewComponent {
+  get previewLogoUrl(): string {
+    const url = this.draft?.branding?.logoUrl;
+    if (!url || url.length === 9122 || (url.startsWith('data:image/jpeg;base64,') && url.length < 12000)) {
+      return DEFAULT_AUTH_LOGO;
+    }
+    return url;
+  }
+
+  onPreviewLogoError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== DEFAULT_AUTH_LOGO) {
+      img.src = DEFAULT_AUTH_LOGO;
+    }
+  }
+
   @Input() previewMode: boolean = true;
 
   private appearanceService = inject(AppearanceService);
