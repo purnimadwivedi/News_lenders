@@ -255,12 +255,12 @@ tr:hover td { background: var(--surface-2); }
 }
 
 .sidebar {
-  width: 70px;
-  min-width: 70px;
+  width: 240px;
+  min-width: 240px;
   background: #2e3338;
   color: #e5e7eb;
-  padding: 20px 0;
-  align-items: center;
+  padding: 20px 16px;
+  align-items: stretch;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -281,8 +281,8 @@ tr:hover td { background: var(--surface-2); }
 
 .content {
   flex: 1;
-  margin-left: 70px;
-  width: calc(100% - 70px);
+  margin-left: 240px;
+  width: calc(100% - 240px);
   min-height: 100vh;
   padding: 0 24px 20px 24px;
   background: #f0f2f5;

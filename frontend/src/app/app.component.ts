@@ -102,9 +102,11 @@ import { AuthService } from './auth.service';
         </nav>
         <div class="sidebar-footer" *ngIf="health">
           <div class="status-dot ok"></div>
+          <span>Connected</span>
         </div>
         <div class="sidebar-footer" *ngIf="healthError">
           <div class="status-dot bad"></div>
+          <span>Disconnected</span>
         </div>
       </aside>
       <main class="content">
@@ -179,8 +181,8 @@ import { AuthService } from './auth.service';
         object-fit: contain; background: white; padding: 3px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
-      .brand-title { display: none; }
-      .brand-sub { display: none; }
+      .brand-title { display: block; font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 2px; }
+      .brand-sub { display: block; font-size: 11px; color: #9ca3af; }
       .sidebar-close-btn {
         display: none;
         background: transparent;
@@ -199,15 +201,16 @@ import { AuthService } from './auth.service';
       nav { display: flex; flex-direction: column; gap: 4px; }
       nav a {
         display: flex;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
-        padding: 12px;
+        gap: 12px;
+        padding: 12px 16px;
         border-radius: 10px;
         color: #9ca3af;
         text-decoration: none;
         transition: all 0.15s ease;
       }
-      .nav-text { display: none; }
+      .nav-text { display: block; font-size: 14px; font-weight: 500; }
       nav a:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
       nav a.active {
         background: #f37819;
