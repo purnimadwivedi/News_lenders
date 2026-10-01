@@ -4,11 +4,12 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
+import { AppearanceService, AppearanceStudioComponent } from './appearance-studio';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, AppearanceStudioComponent],
   template: `
     <ng-container *ngIf="!isLoginPage">
       <div class="mobile-header">
@@ -20,9 +21,27 @@ import { AuthService } from './auth.service';
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <span class="brand-mini">Lender News</span>
+          <span class="brand-mini">{{ appearanceService.branding.applicationName || appearanceService.branding.appName || appearanceService.branding.appTitle }}</span>
         </div>
         <div class="mobile-header-right">
+          <!-- Appearance Studio Launcher (Mobile) -->
+          <button type="button" 
+                  class="btn-studio-star-mobile" 
+                  (click)="appearanceService.openStudio()" 
+                  title="Appearance Studio" 
+                  aria-label="Appearance Studio">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4.5"/>
+              <line x1="12" y1="2" x2="12" y2="4.5"/>
+              <line x1="12" y1="19.5" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="4.5" y2="12"/>
+              <line x1="19.5" y1="12" x2="22" y2="12"/>
+              <line x1="4.93" y1="4.93" x2="6.7" y2="6.7"/>
+              <line x1="17.3" y1="17.3" x2="19.07" y2="19.07"/>
+              <line x1="4.93" y1="19.07" x2="6.7" y2="17.3"/>
+              <line x1="17.3" y1="6.7" x2="19.07" y2="4.93"/>
+            </svg>
+          </button>
           <span class="status-indicator" [class.ok]="health?.ok" [class.bad]="healthError" [title]="health?.ok ? 'API online' : 'API offline'"></span>
           <div class="mobile-profile-wrap" 
                [class.active]="mobileDropdownOpen"
@@ -115,6 +134,24 @@ import { AuthService } from './auth.service';
         <div class="dash-header-bar global-header">
           <h1 class="dash-main-title">{{ pageTitle }}</h1>
           <div class="dash-user-bar">
+            <!-- Appearance Studio Launcher (Desktop) -->
+            <button type="button" 
+                    class="btn-studio-star" 
+                    (click)="appearanceService.openStudio()" 
+                    title="Appearance Studio" 
+                    aria-label="Appearance Studio">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4.5"/>
+                <line x1="12" y1="2" x2="12" y2="4.5"/>
+                <line x1="12" y1="19.5" x2="12" y2="22"/>
+                <line x1="2" y1="12" x2="4.5" y2="12"/>
+                <line x1="19.5" y1="12" x2="22" y2="12"/>
+                <line x1="4.93" y1="4.93" x2="6.7" y2="6.7"/>
+                <line x1="17.3" y1="17.3" x2="19.07" y2="19.07"/>
+                <line x1="4.93" y1="19.07" x2="6.7" y2="17.3"/>
+                <line x1="17.3" y1="6.7" x2="19.07" y2="4.93"/>
+              </svg>
+            </button>
 
             <div class="dash-profile"
                  [class.active]="mobileDropdownOpen"
@@ -170,6 +207,9 @@ import { AuthService } from './auth.service';
         <router-outlet></router-outlet>
       </main>
       </div>
+
+      <!-- Global Non-Routed Appearance Studio Overlay Panel -->
+      <app-appearance-studio *ngIf="appearanceService.isOpen$ | async"></app-appearance-studio>
     </ng-container>
     <ng-container *ngIf="isLoginPage">
       <router-outlet></router-outlet>
@@ -245,6 +285,7 @@ export class AppComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
   public authService = inject(AuthService);
+  public appearanceService = inject(AppearanceService);
   health: { ok: boolean; time: string; company: string; model: string } | null = null;
   healthError = false;
   sidebarOpen = false;

@@ -20,8 +20,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(modifiedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 || error.status === 403) {
-        // Clear session and redirect on unauthorized/forbidden
+      // Do not force logout for appearance studio authorization checks
+      if ((error.status === 401 || error.status === 403) && !req.url.includes('/api/appearance')) {
         auth.confirmLogout();
         router.navigate(['/login'], { replaceUrl: true });
       }
