@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth.service';
+import { AppearanceService } from '../appearance-studio';
 
 @Component({
   selector: 'app-login',
@@ -68,9 +69,9 @@ import { AuthService } from '../auth.service';
       <div class="login-left">
         <div class="brand-bar">
           <div class="logo-box">
-            <img src="/public/images/1631310679243.jfif" alt="IMGC Logo" />
+            <img [src]="appearanceService.branding.logoUrl || '/public/images/1631310679243.jfif'" alt="Logo" />
           </div>
-          <span class="portal-title">IMGC Lender News Portal</span>
+          <span class="portal-title">{{ appearanceService.branding.applicationName || appearanceService.branding.appName || 'IMGC Lender News Portal' }}</span>
         </div>
 
         <div class="hero-content">
@@ -164,6 +165,7 @@ import { AuthService } from '../auth.service';
 })
 export class LoginComponent {
   private auth = inject(AuthService);
+  public appearanceService = inject(AppearanceService);
 
   login(role: string) {
     this.auth.login(role);

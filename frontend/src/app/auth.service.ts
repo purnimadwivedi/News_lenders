@@ -27,6 +27,41 @@ export class AuthService {
     return localStorage.getItem('userRole') || '';
   }
 
+  isAdmin(): boolean {
+    return this.getRole() === 'admin';
+  }
+
+  hasPermission(permission: string): boolean {
+    if (permission === 'appearance.branding.manage') {
+      return this.isAdmin();
+    }
+    // Default admin has full permissions, normal user has personal appearance only
+    if (this.isAdmin()) return true;
+    return false;
+  }
+
+  getTenantId(): string {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('userTenantId');
+      if (stored) return stored;
+    }
+    return this.isAdmin() ? 'tenant-admin-imgc' : 'tenant-lender-partner';
+  }
+
+  getUserId(): string {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('currentUserId');
+      if (stored) return stored;
+    }
+    return this.isAdmin() ? 'admin-meera' : 'user-partner-01';
+  }
+
+  setTenantId(tenantId: string): void {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('userTenantId', tenantId);
+    }
+  }
+
   getUserProfile(): UserProfile {
     const roleKey = this.getRole() || 'admin';
     return {

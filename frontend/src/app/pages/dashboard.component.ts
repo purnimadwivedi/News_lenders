@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { AuthService } from '../auth.service';
 import { Company, NewsArticle, Stats } from '../models';
+import { AppearanceService, CarouselSlide } from '../appearance-studio';
 
 @Component({
   selector: 'app-dashboard',
@@ -12,6 +13,39 @@ import { Company, NewsArticle, Stats } from '../models';
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
 
+    <!-- Announcement Carousel (Configured via Appearance Studio Carousel Tab) -->
+    <div class="dash-carousel-wrap" 
+         *ngIf="appearanceService.carousel.enabled && activeSlides.length > 0 && currentSlide">
+      <div class="carousel-slide-item" 
+           [style.background]="currentSlide.bgGradient">
+        <div class="carousel-slide-content">
+          <div class="carousel-slide-top">
+            <span class="carousel-badge">{{ currentSlide.badge }}</span>
+            <div class="carousel-nav-arrows" *ngIf="activeSlides.length > 1">
+              <button type="button" class="carousel-nav-btn" (click)="prevSlide()" aria-label="Previous slide">‹</button>
+              <button type="button" class="carousel-nav-btn" (click)="nextSlide()" aria-label="Next slide">›</button>
+            </div>
+          </div>
+          <h3 class="carousel-slide-title">{{ currentSlide.title }}</h3>
+          <p class="carousel-slide-subtitle">{{ currentSlide.description }}</p>
+          <a *ngIf="currentSlide.buttonUrl && currentSlide.buttonText" 
+             [href]="currentSlide.buttonUrl" 
+             class="carousel-slide-cta" 
+             target="_blank" 
+             rel="noopener noreferrer">
+            {{ currentSlide.buttonText }} →
+          </a>
+        </div>
+        
+        <div class="carousel-dots" *ngIf="activeSlides.length > 1">
+          <span *ngFor="let s of activeSlides; let i = index" 
+                class="carousel-dot" 
+                [class.active]="i === (currentSlideIndex % activeSlides.length)"
+                (click)="setSlide(i)">
+          </span>
+        </div>
+      </div>
+    </div>
 
     <!-- Chocolate Banner matching the design image -->
     <div class="banner-chocolate" *ngIf="stats">
@@ -316,9 +350,10 @@ import { Company, NewsArticle, Stats } from '../models';
     `
   ]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   public authService = inject(AuthService);
+  public appearanceService = inject(AppearanceService);
   stats: Stats | null = null;
   companies: Company[] = [];
   allArticles: NewsArticle[] = [];
@@ -327,6 +362,20 @@ export class DashboardComponent implements OnInit {
   lenderSearch = '';
   topArticles: NewsArticle[] = [];
   userDropdownOpen = false;
+
+  currentSlideIndex = 0;
+  private carouselTimer: any = null;
+
+  get activeSlides(): CarouselSlide[] {
+    const slides = this.appearanceService.carousel?.slides || [];
+    return slides.filter((s) => s.active !== false);
+  }
+
+  get currentSlide(): CarouselSlide | null {
+    const active = this.activeSlides;
+    if (!active.length) return null;
+    return active[this.currentSlideIndex % active.length];
+  }
 
   get userProfile() {
     return this.authService.getUserProfile();
@@ -533,6 +582,43 @@ export class DashboardComponent implements OnInit {
         });
       }
     });
+    this.startCarouselTimer();
+  }
+
+  ngOnDestroy() {
+    if (this.carouselTimer) {
+      clearInterval(this.carouselTimer);
+    }
+  }
+
+  startCarouselTimer() {
+    if (this.carouselTimer) {
+      clearInterval(this.carouselTimer);
+    }
+    const cfg = this.appearanceService.carousel;
+    if (cfg && cfg.enabled && this.activeSlides.length > 1) {
+      const delay = Math.max(3, cfg.intervalSeconds || 5) * 1000;
+      this.carouselTimer = setInterval(() => {
+        this.nextSlide();
+      }, delay);
+    }
+  }
+
+  nextSlide() {
+    const total = this.activeSlides.length;
+    if (!total) return;
+    this.currentSlideIndex = (this.currentSlideIndex + 1) % total;
+  }
+
+  prevSlide() {
+    const total = this.activeSlides.length;
+    if (!total) return;
+    this.currentSlideIndex = (this.currentSlideIndex - 1 + total) % total;
+  }
+
+  setSlide(idx: number) {
+    this.currentSlideIndex = idx;
+    this.startCarouselTimer();
   }
 
   getCount(level: string): number {
