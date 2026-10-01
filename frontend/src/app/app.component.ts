@@ -143,8 +143,8 @@ import { DEFAULT_AUTH_LOGO } from './auth-logo';
 
         <div class="sidebar-collapse-bar">
           <button class="collapse-btn" (click)="toggleSidebarCollapse()" style="font-size: 16px; font-weight: bold; line-height: 1;">
-            <span *ngIf="!sidebarCollapsed">&laquo;</span>
-            <span *ngIf="sidebarCollapsed">&raquo;</span>
+            <span *ngIf="!isSidebarVisuallyCollapsed">&laquo;</span>
+            <span *ngIf="isSidebarVisuallyCollapsed">&raquo;</span>
           </button>
         </div>
       </aside>
@@ -304,7 +304,7 @@ export class AppComponent implements OnInit {
   health: { ok: boolean; time: string; company: string; model: string } | null = null;
   healthError = false;
   sidebarOpen = false;
-  sidebarCollapsed = false;
+  sidebarCollapsed = true;
   isSidebarHovered = false;
   sidebarForceCollapsed = false;
   mobileDropdownOpen = false;
@@ -383,8 +383,12 @@ export class AppComponent implements OnInit {
   }
 
   toggleSidebarCollapse() {
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-    this.sidebarForceCollapsed = true;
+    if (this.isSidebarVisuallyCollapsed) {
+      this.sidebarCollapsed = false;
+    } else {
+      this.sidebarCollapsed = true;
+      this.sidebarForceCollapsed = true;
+    }
   }
 
   onSidebarEnter() {
@@ -405,6 +409,7 @@ export class AppComponent implements OnInit {
     if (event) event.stopPropagation();
     this.mobileDropdownOpen = false;
     this.closeSidebar();
+    this.sidebarCollapsed = true;
     this.appearanceService.closeStudio();
     this.appearanceService.clearFromDOM();
     this.authService.logout();

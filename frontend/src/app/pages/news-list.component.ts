@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { Company, ImpactLevel, NewsArticle, RiskType, UserOverride } from '../models';
 import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '../auth.service';
 
 interface EditState {
   riskType: RiskType;
@@ -69,7 +70,7 @@ interface EditState {
             {{ a.publishedAt | date: 'medium' }}
           </div>
         </div>
-        <div class="actions">
+        <div class="actions" *ngIf="isAdmin">
           <button (click)="toggleEdit(a)">{{ editingId === a._id ? 'Close' : 'Change Classification' }}</button>
           <button class="danger" (click)="del(a)">Delete</button>
         </div>
@@ -174,6 +175,12 @@ interface EditState {
 })
 export class NewsListComponent implements OnInit {
   private api = inject(ApiService);
+  private authService = inject(AuthService);
+  
+  get isAdmin() {
+    return this.authService.getUserProfile()?.role === 'Admin';
+  }
+
   articles: NewsArticle[] = [];
   companies: Company[] = [];
   total = 0;

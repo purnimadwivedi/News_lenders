@@ -107,8 +107,8 @@ import { Company } from '../models';
               <td style="color: #64748b;">{{ (c.aliases || []).join(', ') || '—' }}</td>
               <td [style.color]="c.active ? '#10b981' : '#ef4444'" style="font-weight: 500;">{{ c.active ? 'Active' : 'Inactive' }}</td>
               <td style="text-align: right; white-space: nowrap;">
-                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px;" (click)="edit(c)">Edit</button>
-                <button class="pill-btn" style="padding: 2px 8px; font-size: 11px; margin-left: 6px; color: #ef4444; border-color: #fca5a5;" (click)="del(c)">Del</button>
+                <button class="pill-btn" style="padding: 2px 8px;" (click)="edit(c)">Edit</button>
+                <button class="pill-btn" style="padding: 2px 8px; margin-left: 6px; color: #ef4444; border-color: #fca5a5;" (click)="del(c)">Del</button>
               </td>
             </tr>
             <tr *ngIf="!pagedItems.length">

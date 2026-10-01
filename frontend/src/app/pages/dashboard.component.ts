@@ -146,24 +146,14 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           <div class="dash-card-sub">{{ selectedCompany ? selectedCompany.name : 'All Tracked Activity' }}</div>
         </div>
 
-        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Low' })">
+        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Critical' })">
           <div class="dash-card-header">
-            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Low') }}</div>
+            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Critical') }}</div>
             <div class="card-icon icon-orange">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Low</div>
-        </div>
-
-        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Medium' })">
-          <div class="dash-card-header">
-            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Medium') }}</div>
-            <div class="card-icon icon-orange">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
-            </div>
-          </div>
-          <div class="dash-card-label">Medium</div>
+          <div class="dash-card-label">Critical</div>
         </div>
 
         <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'High' })">
@@ -176,14 +166,24 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           <div class="dash-card-label">High</div>
         </div>
 
-        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Critical' })">
+        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Medium' })">
           <div class="dash-card-header">
-            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Critical') }}</div>
+            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Medium') }}</div>
             <div class="card-icon icon-orange">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Critical</div>
+          <div class="dash-card-label">Medium</div>
+        </div>
+
+        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Low' })">
+          <div class="dash-card-header">
+            <div class="dash-card-value" style="color: #ea580c;">{{ displayImpactCount('Low') }}</div>
+            <div class="card-icon icon-orange">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+            </div>
+          </div>
+          <div class="dash-card-label">Low</div>
         </div>
 
 
