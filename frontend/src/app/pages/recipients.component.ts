@@ -9,57 +9,62 @@ import { Recipient } from '../models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="page-header-row">
-      <div>
-        <h1>Recipients</h1>
-        <p class="muted">People who receive risk alerts and digests.</p>
-      </div>
+    <div class="page-header-row" style="justify-content: flex-end;">
       <button class="btn-accent" (click)="openNew()">+ Add recipient</button>
     </div>
 
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
-      <h3>{{ editing._id ? 'Edit recipient' : 'New recipient' }}</h3>
-      <div class="grid-2" style="margin-top: 12px;">
-        <div>
-          <label>Name *</label>
-          <input [(ngModel)]="editing.name" placeholder="e.g. Priya Sharma" />
-        </div>
-        <div>
-          <label>Email *</label>
-          <input [(ngModel)]="editing.email" placeholder="name@lender.com" />
-        </div>
-        <div>
-          <label>Role</label>
-          <input [(ngModel)]="editing.role" placeholder="CRO, Head of Risk, etc." />
-        </div>
-        <div>
-          <label>Minimum impact level for alerts</label>
-          <select [(ngModel)]="editing.minImpactLevel">
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-            <option>Critical</option>
-          </select>
-        </div>
-        <div>
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" />
-            <span>Immediate alerts (real-time)</span>
-          </label>
-        </div>
-        <div>
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" />
-            <span>Daily digest</span>
-          </label>
-        </div>
-        <div>
-          <label class="checkbox-label">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>{{ editing._id ? 'Edit recipient' : 'New recipient' }}</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; font-weight: 500;">Status</span>
+          <label class="toggle-switch">
             <input type="checkbox" [(ngModel)]="editing.active" />
-            <span>Active</span>
+            <span class="slider"></span>
           </label>
+          <span [style.color]="editing.active ? 'var(--primary)' : 'var(--muted)'" style="font-size: 13px; font-weight: 500;">
+            {{ editing.active ? 'Active' : 'Inactive' }}
+          </span>
         </div>
       </div>
+      
+      <fieldset [disabled]="!editing.active" style="border: none; padding: 0; margin: 0;">
+        <div class="grid-2" style="margin-top: 12px;">
+          <div>
+            <label>Name *</label>
+            <input [(ngModel)]="editing.name" placeholder="e.g. Priya Sharma" />
+          </div>
+          <div>
+            <label>Email *</label>
+            <input [(ngModel)]="editing.email" placeholder="name@lender.com" />
+          </div>
+          <div>
+            <label>Role</label>
+            <input [(ngModel)]="editing.role" placeholder="CRO, Head of Risk, etc." />
+          </div>
+          <div>
+            <label>Minimum impact level for alerts</label>
+            <select [(ngModel)]="editing.minImpactLevel">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+              <option>Critical</option>
+            </select>
+          </div>
+          <div>
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" />
+              <span>Immediate alerts (real-time)</span>
+            </label>
+          </div>
+          <div>
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" />
+              <span>Daily digest</span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
       <div class="toolbar" style="margin-top: 14px;">
         <button class="primary" (click)="save()">{{ editing._id ? 'Update' : 'Create' }}</button>
         <button (click)="editing = null">Cancel</button>
@@ -112,6 +117,14 @@ import { Recipient } from '../models';
       h1 { margin: 0 0 4px 0; font-size: 24px; }
       h3 { margin: 0; font-size: 14px; }
       td button { margin-left: 4px; font-size: 11px; padding: 4px 9px; }
+      
+      .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; }
+      .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 22px; }
+      .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; }
+      input:checked + .slider { background-color: var(--primary, #f97316); }
+      input:focus + .slider { box-shadow: 0 0 1px var(--primary, #f97316); }
+      input:checked + .slider:before { transform: translateX(18px); }
     `
   ]
 })

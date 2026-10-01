@@ -9,7 +9,6 @@ interface EditState {
   riskType: RiskType;
   riskLevel: ImpactLevel;
   impactLevel: ImpactLevel;
-  sentiment: 'Positive' | 'Neutral' | 'Negative';
   note: string;
 }
 
@@ -18,8 +17,6 @@ interface EditState {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <h1>News Feed</h1>
-    <p class="muted">Filter, review, and recalibrate AI classifications. Your corrections train the next batch.</p>
 
     <div class="card" style="margin-top: 16px;">
       <div class="toolbar news-toolbar">
@@ -40,15 +37,6 @@ interface EditState {
             <option value="High">High</option>
             <option value="Medium">Medium</option>
             <option value="Low">Low</option>
-          </select>
-        </div>
-        <div class="toolbar-item">
-          <select [(ngModel)]="riskLevel" (ngModelChange)="reload()">
-            <option value="">All risk level</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
           </select>
         </div>
         <div class="toolbar-item">
@@ -92,15 +80,8 @@ interface EditState {
           <span class="badge badge-{{ eff.impactLevel }}">
             Impact: {{ eff.impactLevel || '—' }}
           </span>
-          <span class="badge badge-{{ eff.riskLevel }}">
-            Risk: {{ eff.riskLevel || '—' }}
-          </span>
           <span class="badge">{{ eff.riskType || 'unclassified' }}</span>
-          <span class="badge">{{ eff.sentiment || '—' }}</span>
         </ng-container>
-        <span class="badge badge-override" *ngIf="a.userOverride?.overriddenAt">
-          user override
-        </span>
         <span class="badge" *ngIf="a.classificationStatus !== 'classified'" style="background:#fef3c7; color:#92400e;">
           {{ a.classificationStatus }}
         </span>
@@ -136,15 +117,6 @@ interface EditState {
             </select>
           </div>
           <div>
-            <label>Risk level</label>
-            <select [(ngModel)]="editState.riskLevel">
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
-            </select>
-          </div>
-          <div>
             <label>Risk type</label>
             <select [(ngModel)]="editState.riskType">
               <option value="financial">Financial</option>
@@ -156,34 +128,12 @@ interface EditState {
               <<!--<option value="none">None</option>-->
             </select>
           </div>
-          <div>
-            <label>Sentiment</label>
-            <select [(ngModel)]="editState.sentiment">
-              <option value="Positive">Positive</option>
-              <option value="Neutral">Neutral</option>
-              <option value="Negative">Negative</option>
-            </select>
-          </div>
         </div>
         <div style="margin-top: 10px;">
           <label>Why does this need correction? (used to teach future classifications)</label>
           <textarea [(ngModel)]="editState.note" rows="2" placeholder="e.g. This kind of RBI circular always has Critical impact on us."></textarea>
         </div>
         <div class="override-actions">
-          <div class="quick-row">
-            <span class="quick-label">Quick set impact:</span>
-            <button class="quick badge-Low" (click)="quickImpact('Low')">Low</button>
-            <button class="quick badge-Medium" (click)="quickImpact('Medium')">Medium</button>
-            <button class="quick badge-High" (click)="quickImpact('High')">High</button>
-            <button class="quick badge-Critical" (click)="quickImpact('Critical')">Critical</button>
-          </div>
-          <div class="quick-row">
-            <span class="quick-label">Quick set risk:</span>
-            <button class="quick badge-Low" (click)="quickRisk('Low')">Low</button>
-            <button class="quick badge-Medium" (click)="quickRisk('Medium')">Medium</button>
-            <button class="quick badge-High" (click)="quickRisk('High')">High</button>
-            <button class="quick badge-Critical" (click)="quickRisk('Critical')">Critical</button>
-          </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
             <button class="primary" (click)="saveOverride(a)" [disabled]="saving">Save & teach AI</button>
             <button (click)="cancelEdit()" [disabled]="saving">Cancel</button>
@@ -215,17 +165,10 @@ interface EditState {
       .suggested ul { margin: 4px 0 0 18px; padding: 0; }
 
       .override-panel { margin-top: 14px; padding: 14px; background: #faf5ff; border: 1px dashed #d8b4fe; border-radius: 8px; }
-      .override-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .override-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
       @media (max-width: 768px) { .override-grid { grid-template-columns: 1fr 1fr; } }
       @media (max-width: 480px) { .override-grid { grid-template-columns: 1fr; } }
       .override-actions { margin-top: 12px; }
-      .quick-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; font-size: 11px; }
-      .quick-label { color: var(--muted); font-size: 11px; min-width: 110px; }
-      button.quick { font-size: 11px; padding: 4px 10px; border: 1px solid transparent; }
-      button.quick.badge-Low { background: #dcfce7; color: var(--low); }
-      button.quick.badge-Medium { background: #fef9c3; color: var(--medium); }
-      button.quick.badge-High { background: #ffedd5; color: var(--high); }
-      button.quick.badge-Critical { background: #fee2e2; color: var(--critical); }
     `
   ]
 })
@@ -255,6 +198,7 @@ export class NewsListComponent implements OnInit {
     this.route.paramMap.subscribe(params => {
       this.impactLevel = params.get('impact') ?? '';
       this.riskLevel = params.get('risk') ?? params.get('riskLevel') ?? '';
+      this.riskType = params.get('riskType') ?? '';
       this.cmpny = params.get('company') ?? '';
     });
     this.api.listCompanies().subscribe((c) => {
@@ -319,7 +263,6 @@ export class NewsListComponent implements OnInit {
       impactLevel: (u.impactLevel || c.impactLevel || 'Low') as ImpactLevel,
       riskLevel: (u.riskLevel || c.riskLevel || 'Low') as ImpactLevel,
       riskType: (u.riskType || c.riskType || 'none') as RiskType,
-      sentiment: (u.sentiment || c.sentiment || 'Neutral') as 'Positive' | 'Neutral' | 'Negative',
       note: u.note || ''
     };
   }
@@ -327,13 +270,6 @@ export class NewsListComponent implements OnInit {
   cancelEdit() {
     this.editingId = null;
     this.editState = null;
-  }
-
-  quickImpact(lvl: ImpactLevel) {
-    if (this.editState) this.editState.impactLevel = lvl;
-  }
-  quickRisk(lvl: ImpactLevel) {
-    if (this.editState) this.editState.riskLevel = lvl;
   }
 
   saveOverride(a: NewsArticle) {

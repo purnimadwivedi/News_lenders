@@ -11,76 +11,7 @@ import { Company, NewsArticle, Stats } from '../models';
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
-    <div class="dash-header-bar">
-      <h1 class="dash-main-title">Dashboard</h1>
-      <div class="dash-user-bar">
-        <button class="dash-icon-btn" aria-label="Notifications">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span class="dash-badge-dot"></span>
-        </button>
-        <button class="dash-icon-btn" aria-label="Help">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-        </button>
-        <div class="dash-profile"
-             [class.active]="userDropdownOpen"
-             (click)="toggleUserDropdown($event)"
-             role="button"
-             tabindex="0"
-             aria-haspopup="true"
-             [attr.aria-expanded]="userDropdownOpen"
-             (keydown.enter)="toggleUserDropdown($event)"
-             (keydown.space)="toggleUserDropdown($event)">
-          <div class="dash-avatar">{{ userProfile.avatar }}</div>
-          <div class="dash-user-info">
-            <span class="dash-user-name">{{ userProfile.name }}</span>
-            <span class="dash-user-role">{{ userProfile.role }}</span>
-          </div>
-          <svg class="dash-chevron" [class.open]="userDropdownOpen" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
 
-          <!-- User Profile Dropdown Menu -->
-          <div class="user-dropdown-menu" 
-               *ngIf="userDropdownOpen" 
-               (click)="$event.stopPropagation()"
-               role="menu"
-               aria-label="User account menu">
-            <div class="user-dropdown-header">
-              <div class="user-dropdown-avatar">{{ userProfile.avatar }}</div>
-              <div class="user-dropdown-details">
-                <span class="user-dropdown-name">{{ userProfile.name }}</span>
-                <span class="user-dropdown-email">{{ userProfile.email }}</span>
-                <span class="user-dropdown-badge">{{ userProfile.role }}</span>
-              </div>
-            </div>
-
-            <div class="user-dropdown-divider"></div>
-
-            <div class="user-dropdown-items">
-              <button type="button" 
-                      class="user-dropdown-item danger" 
-                      (click)="logout($event)"
-                      role="menuitem"
-                      aria-label="Logout">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Chocolate Banner matching the design image -->
     <div class="banner-chocolate" *ngIf="stats">
@@ -218,6 +149,36 @@ import { Company, NewsArticle, Stats } from '../models';
 
     <!-- Chart Cards Section -->
     <div class="dash-grid-charts">
+      
+      <!-- 1. Top mentioned lenders (Span 2) -->
+      <div class="dash-chart-card grid-span-2">
+        <div class="dash-chart-header">
+          <h3 class="dash-chart-title">Top mentioned lenders</h3>
+          <div class="dash-chart-tabs">
+            <button *ngIf="selectedCompany" class="tab-pill-active hand-cursor" (click)="selectCompany(null)" title="Reset to Every Lender">
+              ✕ Reset
+            </button>
+            <button class="tab-pill-outline hand-cursor" routerLink="/companies">All Lenders</button>
+          </div>
+        </div>
+        <div class="dash-lenders-list" style="max-height: 110px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+          <div *ngFor="let item of stats?.topCompanies" 
+               class="dash-bar-row hand-cursor" 
+               [class.active-lender-bar]="isSelectedLender(item._id)"
+               (click)="onLenderRowClick(item._id)"
+               [title]="'Filter dashboard by ' + item._id">
+            <span class="company-name">{{ item._id }}</span>
+            <div class="dash-bar-track blue-theme">
+              <div class="dash-fill-blue" 
+                   [class.active-fill]="isSelectedLender(item._id)"
+                   [style.width.%]="barWidthTopCompany(item.count)"></div>
+            </div>
+            <span class="bar-count">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Impact distribution -->
       <div class="dash-chart-card">
         <div class="dash-chart-header">
           <h3 class="dash-chart-title">Impact distribution</h3>
@@ -228,8 +189,8 @@ import { Company, NewsArticle, Stats } from '../models';
         </div>
 
         <!-- SVG Graph for Impact Distribution (Compressed Height) -->
-        <div class="dash-graph-container" *ngIf="stats">
-          <svg class="dash-svg-chart" viewBox="0 0 490 145" preserveAspectRatio="none">
+        <div class="dash-graph-container" *ngIf="stats" style="height: 120px;">
+          <svg class="dash-svg-chart" viewBox="0 0 490 120" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block;">
             <defs>
               <linearGradient id="barOrange" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#f37819" />
@@ -238,24 +199,24 @@ import { Company, NewsArticle, Stats } from '../models';
             </defs>
 
             <!-- Y Axis & Grid Lines -->
-            <text x="32" y="16" class="chart-axis-label chart-axis-orange" text-anchor="middle">COUNT</text>
-            <text x="460" y="16" class="chart-axis-label chart-axis-green" text-anchor="middle">SHARE</text>
+            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle">COUNT</text>
+            <text x="460" y="12" class="chart-axis-label chart-axis-green" text-anchor="middle">SHARE</text>
 
-            <line x1="45" y1="26" x2="445" y2="26" class="chart-grid-line" />
-            <text x="38" y="29" text-anchor="end" fill="#94a3b8" font-size="9">Max</text>
-            <text x="452" y="29" text-anchor="start" fill="#94a3b8" font-size="9">100%</text>
+            <line x1="45" y1="25" x2="445" y2="25" class="chart-grid-line" />
+            <text x="38" y="28" text-anchor="end" fill="#94a3b8" font-size="9">Max</text>
+            <text x="452" y="28" text-anchor="start" fill="#94a3b8" font-size="9">100%</text>
 
-            <line x1="45" y1="56" x2="445" y2="56" class="chart-grid-line" />
-            <text x="38" y="59" text-anchor="end" fill="#94a3b8" font-size="9">75%</text>
-            <text x="452" y="59" text-anchor="start" fill="#94a3b8" font-size="9">75%</text>
+            <line x1="45" y1="50" x2="445" y2="50" class="chart-grid-line" />
+            <text x="38" y="53" text-anchor="end" fill="#94a3b8" font-size="9">75%</text>
+            <text x="452" y="53" text-anchor="start" fill="#94a3b8" font-size="9">75%</text>
 
-            <line x1="45" y1="86" x2="445" y2="86" class="chart-grid-line" />
-            <text x="38" y="89" text-anchor="end" fill="#94a3b8" font-size="9">50%</text>
-            <text x="452" y="89" text-anchor="start" fill="#94a3b8" font-size="9">50%</text>
+            <line x1="45" y1="75" x2="445" y2="75" class="chart-grid-line" />
+            <text x="38" y="78" text-anchor="end" fill="#94a3b8" font-size="9">50%</text>
+            <text x="452" y="78" text-anchor="start" fill="#94a3b8" font-size="9">50%</text>
 
-            <line x1="45" y1="116" x2="445" y2="116" stroke="#cbd5e1" stroke-width="1.5" />
-            <text x="38" y="119" text-anchor="end" fill="#94a3b8" font-size="9">0</text>
-            <text x="452" y="119" text-anchor="start" fill="#94a3b8" font-size="9">0%</text>
+            <line x1="45" y1="100" x2="445" y2="100" stroke="#cbd5e1" stroke-width="1.5" />
+            <text x="38" y="103" text-anchor="end" fill="#94a3b8" font-size="9">0</text>
+            <text x="452" y="103" text-anchor="start" fill="#94a3b8" font-size="9">0%</text>
 
             <!-- Vertical Bars for Each Impact Level -->
             <g *ngFor="let d of getImpactChartData()">
@@ -272,7 +233,7 @@ import { Company, NewsArticle, Stats } from '../models';
               <text [attr.x]="d.x + 22" [attr.y]="d.y - 4" text-anchor="middle" fill="#ea580c" font-size="10" font-weight="800">
                 {{ d.count }}
               </text>
-              <text [attr.x]="d.x + 22" y="132" text-anchor="middle" fill="#334155" font-size="10.5" font-weight="700">
+              <text [attr.x]="d.x + 22" y="114" text-anchor="middle" fill="#334155" font-size="10.5" font-weight="700">
                 {{ d.level }}
               </text>
             </g>
@@ -308,32 +269,40 @@ import { Company, NewsArticle, Stats } from '../models';
         </div>
       </div>
 
+      <!-- 3. Risk Types -->
       <div class="dash-chart-card">
         <div class="dash-chart-header">
-          <h3 class="dash-chart-title">Top mentioned lenders</h3>
-          <div class="dash-chart-tabs">
-            <button *ngIf="selectedCompany" class="tab-pill-active hand-cursor" (click)="selectCompany(null)" title="Reset to Every Lender">
-              ✕ Reset
-            </button>
-            <button class="tab-pill-outline hand-cursor" routerLink="/companies">All Lenders</button>
-          </div>
+          <h3 class="dash-chart-title">Risk Types</h3>
         </div>
-        <div class="dash-lenders-list">
-          <div *ngFor="let item of stats?.topCompanies" 
-               class="dash-bar-row hand-cursor" 
-               [class.active-lender-bar]="isSelectedLender(item._id)"
-               (click)="onLenderRowClick(item._id)"
-               [title]="'Filter dashboard by ' + item._id">
-            <span class="company-name">{{ item._id }}</span>
-            <div class="dash-bar-track blue-theme">
-              <div class="dash-fill-blue" 
-                   [class.active-fill]="isSelectedLender(item._id)"
-                   [style.width.%]="barWidthTopCompany(item.count)"></div>
+        <div class="dash-graph-container" style="display: flex; align-items: center; justify-content: center; height: 120px;" *ngIf="stats">
+          <svg viewBox="0 0 100 100" style="width: 120px; height: 120px;">
+            <path *ngFor="let slice of getRiskPieChartData()"
+                  class="hand-cursor"
+                  [attr.d]="slice.path"
+                  [attr.fill]="slice.color"
+                  [title]="slice.id + ': ' + slice.percent + '%'"
+                  [routerLink]="getNewsLink({ riskType: slice.id })"
+                  style="transition: all 0.3s ease; stroke: #fff; stroke-width: 1px;">
+            </path>
+            <!-- Center circle for Donut effect -->
+            <circle cx="50" cy="50" r="22" fill="#ffffff"></circle>
+            <!-- Total count in center -->
+            <text x="50" y="54" text-anchor="middle" font-size="14" font-weight="800" fill="#0f172a">{{ displayTotal }}</text>
+          </svg>
+          
+          <div style="display: flex; flex-direction: column; justify-content: center; margin-left: 20px; gap: 4px; font-size: 11px; max-height: 130px; overflow-y: auto;">
+            <div *ngFor="let slice of getRiskPieChartData()" 
+                 class="hand-cursor" 
+                 [routerLink]="getNewsLink({ riskType: slice.id })"
+                 style="display: flex; align-items: center; gap: 6px; padding: 2px 0;">
+              <span [style.background]="slice.color" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+              <span style="font-weight: 500; color: #334155; text-transform: capitalize; width: 65px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" [title]="slice.id">{{ slice.id }}</span>
+              <span style="font-weight: 700; color: #0f172a; margin-left: auto;">{{ slice.percent }}%</span>
             </div>
-            <span class="bar-count">{{ item.count }}</span>
           </div>
         </div>
       </div>
+
     </div>
   `,
   styles: [
@@ -388,7 +357,8 @@ export class DashboardComponent implements OnInit {
 
   get displayLendersCount(): number {
     if (this.selectedCompany) return 1;
-    return this.stats?.topCompanies?.length || this.companies.length || 7;
+    const activeCompanies = new Set(this.allArticles.map(a => typeof a.company === 'object' ? a.company._id || a.company : a.company));
+    return activeCompanies.size || 0;
   }
 
   get displayLendersSub(): string {
@@ -595,9 +565,9 @@ export class DashboardComponent implements OnInit {
     return levels.map((lvl, i) => {
       const count = counts[i];
       const percent = this.displayTotal > 0 ? Math.round((count / total) * 100) : 0;
-      const barH = count > 0 ? Math.max(Math.round((count / maxVal) * 78), 8) : 4;
+      const barH = count > 0 ? Math.max(Math.round((count / maxVal) * 70), 8) : 4;
       const x = 70 + i * 105;
-      const y = 116 - barH;
+      const y = 100 - barH;
       return {
         level: lvl,
         count,
@@ -613,5 +583,58 @@ export class DashboardComponent implements OnInit {
     const data = this.getImpactChartData();
     if (!data.length) return '';
     return data.map((d) => `${d.x + 22},${d.y}`).join(' ');
+  }
+
+  getRiskPieChartData() {
+    let data = [];
+    if (this.selectedCompany) {
+       const counts: Record<string, number> = {};
+       this.filteredArticles.forEach(a => {
+         const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
+         counts[type] = (counts[type] || 0) + 1;
+       });
+       data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
+    } else {
+       data = this.stats?.byRisk || [];
+    }
+
+    if (!data.length) return [];
+    
+    // sort by count descending
+    data = data.slice().sort((a,b) => b.count - a.count);
+
+    const total = data.reduce((sum, d) => sum + d.count, 0) || 1;
+    let startAngle = -90;
+    // Premium color palette for risks
+    const colors = ['#f37819', '#2563eb', '#10b981', '#8b5cf6', '#ef4444', '#ec4899', '#64748b'];
+    
+    return data.map((d, i) => {
+      const sliceAngle = (d.count / total) * 360;
+      const endAngle = startAngle + sliceAngle;
+      
+      const x1 = 50 + 40 * Math.cos(Math.PI * startAngle / 180);
+      const y1 = 50 + 40 * Math.sin(Math.PI * startAngle / 180);
+      const x2 = 50 + 40 * Math.cos(Math.PI * endAngle / 180);
+      const y2 = 50 + 40 * Math.sin(Math.PI * endAngle / 180);
+      
+      const largeArc = sliceAngle > 180 ? 1 : 0;
+      
+      let pathData = '';
+      if (sliceAngle === 360) {
+        pathData = `M 50, 10 A 40,40 0 1,1 49.9,10 Z`;
+      } else {
+        pathData = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      }
+      
+      startAngle = endAngle;
+      
+      return {
+        id: d._id || 'none',
+        count: d.count,
+        percent: Math.round((d.count / total) * 100),
+        color: colors[i % colors.length],
+        path: pathData
+      };
+    });
   }
 }

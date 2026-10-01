@@ -8,11 +8,7 @@ import { RunLog } from '../models';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="page-header-row">
-      <div>
-        <h1>Runs</h1>
-        <p class="muted">Job history and manual triggers. Cron runs the fetch+classify every 2h and a digest at 8:30 AM IST by default.</p>
-      </div>
+    <div class="page-header-row" style="justify-content: flex-end;">
       <div class="header-actions">
         <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy">Fetch + classify now</button>
         <button (click)="triggerDigest()" [disabled]="busy">Send digest now</button>

@@ -9,11 +9,7 @@ import { Company } from '../models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="page-header-row">
-      <div>
-        <h1>Lenders</h1>
-        <p class="muted">List of lenders to monitor in news fetches.</p>
-      </div>
+    <div class="page-header-row" style="justify-content: flex-end;">
       <button class="btn-accent" (click)="openNew()">+ Add lender</button>
     </div>
 
@@ -142,9 +138,10 @@ export class CompaniesComponent implements OnInit {
   error = '';
 
   get filteredItems(): Company[] {
+    const activeItems = this.items.filter(c => c.active);
     const q = this.search.trim().toLowerCase();
-    if (!q) return this.items;
-    return this.items.filter(
+    if (!q) return activeItems;
+    return activeItems.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         (c.aliases && c.aliases.some((a) => a.toLowerCase().includes(q))) ||

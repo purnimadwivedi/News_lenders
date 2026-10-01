@@ -44,11 +44,6 @@ const RISK_PLACEHOLDERS: Record<string, string> = {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <h1>Risk &amp; Impact Definitions</h1>
-    <p class="muted">
-      These definitions are fed to the AI on every classification run. Edit them to teach the model
-      what each level means specifically for your business — the next fetch will use the updated guidance.
-    </p>
 
     <div *ngIf="status" class="card" [ngClass]="status.kind"
          style="margin-top: 14px;">

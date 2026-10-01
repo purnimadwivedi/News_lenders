@@ -86,6 +86,7 @@ input, select, textarea {
   box-sizing: border-box;
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
+input:disabled, select:disabled, textarea:disabled { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; border-color: #e5e7eb; }
 
 label {
   display: block;
@@ -254,11 +255,12 @@ tr:hover td { background: var(--surface-2); }
 }
 
 .sidebar {
-  width: 240px;
-  min-width: 240px;
+  width: 70px;
+  min-width: 70px;
   background: #2e3338;
   color: #e5e7eb;
-  padding: 20px 14px;
+  padding: 20px 0;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -279,11 +281,11 @@ tr:hover td { background: var(--surface-2); }
 
 .content {
   flex: 1;
-  margin-left: 240px;
-  width: calc(100% - 240px);
+  margin-left: 70px;
+  width: calc(100% - 70px);
   min-height: 100vh;
-  padding: 20px 28px;
-  background: #fbf8f5;
+  padding: 20px 24px;
+  background: #f0f2f5;
   overflow-x: hidden;
   min-width: 0;
   box-sizing: border-box;
@@ -943,7 +945,14 @@ tr:hover td { background: var(--surface-2); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.dash-header-bar.global-header {
+  background: #ffffff;
+  margin: -20px -24px 8px -24px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #cbd5e1;
 }
 
 .dash-main-title {
@@ -1340,15 +1349,13 @@ tr:hover td { background: var(--surface-2); }
   to { transform: rotate(360deg); }
 }
 
-/* Chocolate Top Banner */
 .banner-chocolate {
   background: #492812;
   background: linear-gradient(135deg, #492812 0%, #3e200c 100%);
-  border-radius: 18px;
-  padding: 22px 24px;
+  border-radius: 12px;
+  padding: 6px 12px;
   color: #ffffff;
-  margin-top: 14px;
-  box-shadow: 0 8px 24px rgba(73, 40, 18, 0.18);
+  box-shadow: 0 4px 16px rgba(73, 40, 18, 0.18);
 }
 
 .banner-top-row {
@@ -1357,18 +1364,18 @@ tr:hover td { background: var(--surface-2); }
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .banner-title-group {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 22px;
+  gap: 16px;
 }
 
 .banner-title {
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 800;
   color: #ffffff;
   margin: 0;
@@ -1634,23 +1641,23 @@ tr:hover td { background: var(--surface-2); }
   background: #f37819;
 }
 
-/* White Stat Cards Inside Chocolate Banner (4 columns) */
 .banner-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 8px;
 }
 
 .dash-card {
   background: #ffffff;
-  border-radius: 13px;
-  padding: 14px 14px 12px 14px;
+  border-radius: 10px;
+  padding: 4px 8px;
   color: #0f172a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-height: 64px;
 }
 
 .dash-card:hover {
@@ -1666,20 +1673,24 @@ tr:hover td { background: var(--surface-2); }
 }
 
 .dash-card-value {
-  font-size: 26px;
+  font-size: 18px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1;
 }
 
 .card-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+.card-icon svg {
+  width: 13px;
+  height: 13px;
 }
 
 .icon-blue {
@@ -1719,34 +1730,34 @@ tr:hover td { background: var(--surface-2); }
 }
 
 .dash-card-label {
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #1e293b;
-  margin-top: 10px;
+  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .dash-card-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #64748b;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 /* Charts Grid */
 .dash-grid-charts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .dash-chart-card {
   background: #ffffff;
   border: 1px solid #eef2f6;
-  border-radius: 14px;
-  padding: 14px 18px;
+  border-radius: 12px;
+  padding: 8px 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
@@ -1796,7 +1807,7 @@ tr:hover td { background: var(--surface-2); }
 
 /* Compact Left Impact Distribution & Right Lenders List */
 .dash-lenders-list {
-  max-height: 195px;
+  max-height: 110px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -1819,8 +1830,8 @@ tr:hover td { background: var(--surface-2); }
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 4px 0;
-  padding: 3px 6px;
+  margin: 2px 0;
+  padding: 2px 6px;
   border-radius: 6px;
   transition: background 0.15s;
 }
@@ -1880,8 +1891,8 @@ tr:hover td { background: var(--surface-2); }
 
 .dash-svg-chart {
   width: 100%;
-  height: 155px;
-  max-height: 165px;
+  height: 120px;
+  max-height: 120px;
   overflow: visible;
 }
 
@@ -1911,8 +1922,8 @@ tr:hover td { background: var(--surface-2); }
   align-items: center;
   justify-content: center;
   gap: 18px;
-  margin-top: 8px;
-  font-size: 11px;
+  margin-top: 4px;
+  font-size: 10.5px;
   font-weight: 600;
   color: #475569;
   flex-wrap: wrap;
