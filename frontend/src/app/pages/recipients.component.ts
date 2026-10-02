@@ -48,16 +48,17 @@ import { Recipient } from '../models';
             </select>
           </div>
           <div>
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" />
-              <span>Immediate alerts (real-time)</span>
-            </label>
-          </div>
-          <div>
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" />
-              <span>Daily digest</span>
-            </label>
+            <label style="visibility: hidden;">Notifications</label>
+            <div style="display: flex; align-items: center; gap: 24px; min-height: 38px; flex-wrap: wrap;">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editing.receiveImmediateAlerts" />
+                <span>Immediate alerts (real-time)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="editing.receiveDailyDigest" />
+                <span>Daily digest</span>
+              </label>
+            </div>
           </div>
         </div>
       </fieldset>
