@@ -56,11 +56,24 @@ export interface UserOverride {
   overriddenBy?: string;
 }
 
+export interface ImpactDefinition {
+  imgcDefinition: string;
+  llmInstructions: string;
+}
+
 export interface LevelDefinitions {
-  Low: string;
-  Medium: string;
-  High: string;
-  Critical: string;
+  Low: ImpactDefinition;
+  Medium: ImpactDefinition;
+  High: ImpactDefinition;
+  Critical: ImpactDefinition;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RiskTypeDefinitions {
@@ -70,14 +83,16 @@ export interface RiskTypeDefinitions {
   regulatory: string;
   competitive: string;
   strategic: string;
+  [key: string]: string;
 }
 
 export interface Configuration {
   _id?: string;
   key?: string;
-  riskLevelDefinitions: LevelDefinitions;
+  riskLevelDefinitions?: Record<string, string>;
   impactLevelDefinitions: LevelDefinitions;
-  riskTypeDefinitions: RiskTypeDefinitions;
+  categories: Category[];
+  riskTypeDefinitions?: RiskTypeDefinitions;
   extraGuidance?: string;
   updatedBy?: string;
   updatedAt?: string;

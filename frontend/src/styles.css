@@ -285,42 +285,25 @@ label {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
-  flex: 1;
-  min-height: 0;
 }
 
-app-companies, app-recipients, app-runs {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
+app-companies, app-recipients, app-runs, app-dashboard {
+  display: block;
+  width: 100%;
 }
 
 app-companies > .card:last-child,
 app-recipients > .card:last-child,
 app-runs > .card:last-child {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
 }
 
-app-dashboard {
-  display: block;
-  height: 100%;
-  overflow-y: auto;
-}
-.table-wrap {
-  flex: 1;
-  overflow-y: auto;
-}
 table {
   width: 100%;
-  height: 100%;
+  height: auto;
   border-collapse: collapse;
   min-width: 520px;
 }
@@ -1664,7 +1647,7 @@ tr:hover td { background: #f8fafc; }
 .banner-chocolate {
   background: #633414;
   border-radius: 12px;
-  padding: 6px 12px;
+  padding: 12px 14px;
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(73, 40, 18, 0.18);
 }
@@ -1675,7 +1658,7 @@ tr:hover td { background: #f8fafc; }
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .banner-title-group {

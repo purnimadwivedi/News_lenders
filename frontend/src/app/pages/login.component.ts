@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth.service';
+import { AppearanceService } from '../appearance-studio';
 import { DEFAULT_AUTH_LOGO } from '../auth-logo';
 
 const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
@@ -124,7 +125,7 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
       <div class="login-right">
         <div class="login-card">
           <h2 class="card-title">Welcome Back</h2>
-          <p class="card-subtitle">Sign in to your IMGC Lender News Portal account</p>
+          <p class="card-subtitle">Sign in to your {{ portalTitle }} account</p>
 
           <div class="form-group">
             <label for="empIdInput">Employee ID or Email</label>
@@ -140,16 +141,21 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
             </p>
           </div>
 
+          <div class="login-terms-note">
+            <span>{{ termsText }}</span>
+          </div>
+
           <button class="btn-continue" (click)="login('admin')">
             <span>Continue</span>
             <span class="arrow-sym">&rarr;</span>
           </button>
 
           <div class="demo-section">
-            <p class="demo-prompt">Need demo access? <strong>Enter Demo Mode</strong></p>
-            <div class="demo-buttons">
-              <button type="button" class="btn-demo" (click)="login('admin')">Demo as Admin</button>
-              <button type="button" class="btn-demo" (click)="login('user')">Demo as User</button>
+            <p class="demo-prompt">Select Authenticated User:</p>
+            <div class="demo-buttons" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <button type="button" class="btn-demo" (click)="login('admin', 'admin-001', 'Admin')">Admin</button>
+              <button type="button" class="btn-demo" (click)="login('user', 'user-a', 'User A')">User A</button>
+              <button type="button" class="btn-demo" (click)="login('user', 'user-b', 'User B')">User B</button>
             </div>
           </div>
         </div>
@@ -160,13 +166,20 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          <span>Protected workspace · access is granted by IMGC</span>
+          <span>Protected workspace · access is granted by {{ portalTitle }}</span>
         </div>
       </div>
 
     </div>
   `,
   styles: [`
+      .login-terms-note {
+        margin: 10px 0 14px 0;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.75);
+        text-align: center;
+        line-height: 1.4;
+      }
     :host {
       display: block;
       width: 100vw;
@@ -555,8 +568,27 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
 })
 export class LoginComponent {
   private auth = inject(AuthService);
-  authLogo = DEFAULT_AUTH_LOGO;
-  readonly portalTitle = DEFAULT_AUTH_TITLE;
+  public appearanceService = inject(AppearanceService);
+
+  get branding() {
+    return this.appearanceService.branding;
+  }
+
+  get portalTitle(): string {
+    return this.branding.applicationName || this.branding.appName || DEFAULT_AUTH_TITLE;
+  }
+
+  get authLogo(): string {
+    const logo = this.branding.loginLogo || this.branding.logoUrl;
+    if (!logo || logo.length === 9122 || (logo.startsWith('data:image/jpeg;base64,') && logo.length < 12000)) {
+      return DEFAULT_AUTH_LOGO;
+    }
+    return logo;
+  }
+
+  get termsText(): string {
+    return this.branding.termsPrivacyText || 'By signing in you agree to our Terms of Service and Privacy Policy.';
+  }
 
   onLogoError(event: Event) {
     const img = event.target as HTMLImageElement;
@@ -565,8 +597,8 @@ export class LoginComponent {
     }
   }
 
-  login(role: string) {
-    this.auth.login(role);
+  login(role: string, customUserId?: string, customName?: string) {
+    this.auth.login(role, customUserId, customName);
   }
 }
 

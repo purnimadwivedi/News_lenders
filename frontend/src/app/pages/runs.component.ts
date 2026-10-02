@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, DoCheck, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
+import { ExportService } from '../export.service';
 import { RunLog } from '../models';
 
 @Component({
@@ -10,7 +11,19 @@ import { RunLog } from '../models';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="page-header-row" style="justify-content: flex-end;">
-      <div class="header-actions">
+      <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="pill-btn" (click)="exportDigestExcel()" [disabled]="busy" title="Export Digest in Excel format">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export Digest (Excel)
+        </button>
+        <button class="pill-btn" (click)="exportDigestPdf()" [disabled]="busy" title="Export Digest in PDF format">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          Export Digest (PDF)
+        </button>
         <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy">Fetch + classify now</button>
         <button (click)="triggerDigest()" [disabled]="busy">Send digest now</button>
       </div>
@@ -53,8 +66,6 @@ import { RunLog } from '../models';
               <th (click)="sortBy('articlesFetched')">Fetched <span class="sort-icon">{{ sortCol === 'articlesFetched' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesNew')">New <span class="sort-icon">{{ sortCol === 'articlesNew' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesClassified')">Classified <span class="sort-icon">{{ sortCol === 'articlesClassified' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
-              <th (click)="sortBy('articlesFailed')">Failed <span class="sort-icon">{{ sortCol === 'articlesFailed' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
-              <th (click)="sortBy('emailsSent')">Emails <span class="sort-icon">{{ sortCol === 'emailsSent' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -69,13 +80,9 @@ import { RunLog } from '../models';
               <td>{{ r.stats.articlesFetched || 0 }}</td>
               <td style="color: #10b981; font-weight: 600;">{{ r.stats.articlesNew || 0 }}</td>
               <td>{{ r.stats.articlesClassified || 0 }}</td>
-              <td [style.color]="(r.stats.articlesFailed || 0) > 0 ? '#ef4444' : 'inherit'">
-                {{ r.stats.articlesFailed || 0 }}
-              </td>
-              <td>{{ r.stats.emailsSent || 0 }}</td>
             </tr>
             <tr *ngIf="!pagedRuns.length">
-              <td colspan="10" style="text-align:center; padding: 30px; color: #94a3b8;">
+              <td colspan="8" style="text-align:center; padding: 30px; color: #94a3b8;">
                 {{ search.trim() ? 'No jobs match your search.' : 'No runs yet.' }}
               </td>
             </tr>
@@ -176,8 +183,6 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
       if (this.sortCol === 'articlesFetched') { v1 = a.stats.articlesFetched || 0; v2 = b.stats.articlesFetched || 0; }
       if (this.sortCol === 'articlesNew') { v1 = a.stats.articlesNew || 0; v2 = b.stats.articlesNew || 0; }
       if (this.sortCol === 'articlesClassified') { v1 = a.stats.articlesClassified || 0; v2 = b.stats.articlesClassified || 0; }
-      if (this.sortCol === 'articlesFailed') { v1 = a.stats.articlesFailed || 0; v2 = b.stats.articlesFailed || 0; }
-      if (this.sortCol === 'emailsSent') { v1 = a.stats.emailsSent || 0; v2 = b.stats.emailsSent || 0; }
       
       if (typeof v1 === 'string') v1 = v1.toLowerCase();
       if (typeof v2 === 'string') v2 = v2.toLowerCase();
@@ -199,9 +204,7 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
       Lenders: r.stats.companiesProcessed || 0,
       Fetched: r.stats.articlesFetched || 0,
       New: r.stats.articlesNew || 0,
-      Classified: r.stats.articlesClassified || 0,
-      Failed: r.stats.articlesFailed || 0,
-      Emails: r.stats.emailsSent || 0
+      Classified: r.stats.articlesClassified || 0
     }));
     
     if (!data.length) return;
@@ -219,6 +222,26 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
     a.download = `runs_export_${new Date().getTime()}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  private exportService = inject(ExportService);
+
+  exportDigestExcel() {
+    this.api.listNews({ limit: 100 }).subscribe({
+      next: (res) => {
+        this.exportService.exportDigestToExcel(res.items);
+      },
+      error: () => alert('Failed to fetch articles for export')
+    });
+  }
+
+  exportDigestPdf() {
+    this.api.listNews({ limit: 100 }).subscribe({
+      next: (res) => {
+        this.exportService.exportDigestToPdf(res.items);
+      },
+      error: () => alert('Failed to fetch articles for export')
+    });
   }
 
   ngOnInit() {

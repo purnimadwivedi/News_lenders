@@ -1,10 +1,8 @@
-import { DEFAULT_AUTH_LOGO } from '../../auth-logo';
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { AppearanceService, DEFAULT_APPEARANCE_STATE } from '../appearance.service';
-import { AuthService } from '../../auth.service';
+import { DEFAULT_AUTH_LOGO } from '../../auth-logo';
 import { BrandingConfig } from '../appearance.models';
 
 @Component({
@@ -12,13 +10,9 @@ import { BrandingConfig } from '../appearance.models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="tab-pane">
-      <div class="branding-intro">
-        <h3 class="branding-header-title">Enterprise Branding</h3>
-        <p class="branding-header-sub">Configure organization identity, logos, and brand colors applied across all users.</p>
-      </div>
-
-      <!-- File Validation Error Message -->
+    <div class="branding-tab-pane">
+      
+      <!-- Alert message if file upload errors -->
       <div *ngIf="uploadError" class="branding-alert error">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
           <circle cx="12" cy="12" r="10"></circle>
@@ -28,540 +22,433 @@ import { BrandingConfig } from '../appearance.models';
         <span>{{ uploadError }}</span>
       </div>
 
-      <div class="branding-fields-wrapper">
-        
-        <!-- 1. Application Name & Subtitle -->
-        <div class="field-card">
+      <!-- SECTION 1: Text & Identity -->
+      <div class="branding-section">
+        <h4 class="section-title">Text &amp; Identity</h4>
+
+        <div class="field-group">
           <label class="field-label" for="appNameInput">Application Name</label>
-          <p class="field-desc">Workspace title displayed across headers, sidebar brand, and browser window.</p>
           <input id="appNameInput"
                  type="text" 
-                 class="text-input" 
-                 [ngModel]="draftBranding.applicationName || draftBranding.appName || draftBranding.appTitle" 
+                 class="branding-input" 
+                 [ngModel]="draftBranding.applicationName || draftBranding.appName || 'DSA Portal'" 
                  (ngModelChange)="onAppNameChange($event)"
-                 placeholder="e.g. Lender News Portal" />
+                 placeholder="e.g. DSA Portal" />
+        </div>
 
-          <label class="field-label" for="appSubtitleInput" style="margin-top: 10px;">Brand Subtitle</label>
-          <p class="field-desc">Descriptive portal tagline shown below the title in the sidebar.</p>
-          <input id="appSubtitleInput"
+        <div class="field-group">
+          <label class="field-label" for="termsInput">Terms &amp; Privacy Text</label>
+          <input id="termsInput"
                  type="text" 
-                 class="text-input" 
-                 [ngModel]="draftBranding.appSubtitle" 
-                 (ngModelChange)="onSubtitleChange($event)"
-                 placeholder="e.g. IMGC Reviewer Portal" />
+                 class="branding-input" 
+                 [ngModel]="draftBranding.termsPrivacyText || defaultTermsText" 
+                 (ngModelChange)="onTermsChange($event)"
+                 placeholder="By signing in you agree to our Terms of Service and Privacy Policy." />
         </div>
+      </div>
 
-        <!-- 2. Logo Upload & Management -->
-        <div class="field-card">
-          <label class="field-label">Organization Logo</label>
-          <p class="field-desc">Upload a high-resolution PNG, JPG, or SVG logo (max 2MB). Cached-busting is applied automatically.</p>
+      <!-- SECTION 2: Logos & Assets -->
+      <div class="branding-section">
+        <h4 class="section-title">Logos &amp; Assets</h4>
 
-          <div class="logo-preview-row">
-            <!-- Logo Preview Container -->
-            <div class="logo-box">
-              <img *ngIf="draftBranding.logoUrl" 
-                   [src]="draftLogoUrl" 
-                   (error)="onLogoError($event)" 
-                   alt="Logo Preview" 
-                   class="logo-img" />
-              <div *ngIf="!draftBranding.logoUrl" class="no-logo-placeholder">No Logo</div>
+        <!-- 2A. Login Screen Logo -->
+        <div class="asset-field-group">
+          <label class="field-label">Login Screen Logo</label>
+
+          <div *ngIf="hasLoginLogo" class="asset-preview-card">
+            <div class="asset-logo-box">
+              <img [src]="loginLogoDisplay" (error)="onLoginLogoError($event)" alt="Login Logo" class="asset-img" />
             </div>
+            <button type="button" class="btn-remove-asset" (click)="removeLoginLogo()">
+              Remove
+            </button>
+          </div>
 
-            <!-- Upload, Replace, Remove Actions -->
-            <div class="logo-action-buttons">
-              <label class="btn-action-brand btn-upload">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <span>{{ draftBranding.logoUrl ? 'Replace Logo' : 'Upload Logo' }}</span>
-                <input type="file" 
-                       accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp" 
-                       (change)="onFileSelected($event)" 
-                       style="display: none;" />
-              </label>
-
-              <button *ngIf="draftBranding.logoUrl" 
-                      type="button" 
-                      class="btn-action-brand btn-remove" 
-                      (click)="removeLogo()">
-                Remove
-              </button>
-
-              <button type="button" 
-                      class="btn-action-brand btn-reset-default" 
-                      (click)="resetToDefaultLogo()">
-                Reset Default
-              </button>
-            </div>
+          <div *ngIf="!hasLoginLogo" class="asset-upload-card">
+            <label class="upload-dropzone">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Upload image</span>
+              <input type="file" 
+                     accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp" 
+                     (change)="onLoginLogoFileSelected($event)" 
+                     style="display: none;" />
+            </label>
           </div>
         </div>
 
-        <!-- 3. Brand Colors -->
-        <div class="field-card">
-          <label class="field-label">Brand Colors</label>
-          <p class="field-desc">Central primary and secondary accents used across navigation, buttons, and badges.</p>
+        <!-- 2B. Sidebar Logo -->
+        <div class="asset-field-group">
+          <label class="field-label">Sidebar Logo</label>
 
-          <div class="brand-colors-grid">
-            <div class="color-item-wrap">
-              <span class="color-item-lbl">Primary Brand Color</span>
-              <div class="color-picker-row">
-                <input type="color" 
-                       class="color-swatch-input" 
-                       [ngModel]="primaryColor" 
-                       (ngModelChange)="onPrimaryColorChange($event)" />
-                <input type="text" 
-                       class="text-input hex-input" 
-                       [ngModel]="primaryColor" 
-                       (ngModelChange)="onPrimaryColorChange($event)" />
-              </div>
+          <div *ngIf="hasSidebarLogo" class="asset-preview-card">
+            <div class="asset-logo-box">
+              <img [src]="sidebarLogoDisplay" (error)="onSidebarLogoError($event)" alt="Sidebar Logo" class="asset-img" />
             </div>
+            <button type="button" class="btn-remove-asset" (click)="removeSidebarLogo()">
+              Remove
+            </button>
+          </div>
 
-            <div class="color-item-wrap">
-              <span class="color-item-lbl">Secondary Brand Color</span>
-              <div class="color-picker-row">
-                <input type="color" 
-                       class="color-swatch-input" 
-                       [ngModel]="secondaryColor" 
-                       (ngModelChange)="onSecondaryColorChange($event)" />
-                <input type="text" 
-                       class="text-input hex-input" 
-                       [ngModel]="secondaryColor" 
-                       (ngModelChange)="onSecondaryColorChange($event)" />
-              </div>
-            </div>
+          <div *ngIf="!hasSidebarLogo" class="asset-upload-card">
+            <label class="upload-dropzone">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Upload image</span>
+              <input type="file" 
+                     accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp" 
+                     (change)="onSidebarLogoFileSelected($event)" 
+                     style="display: none;" />
+            </label>
           </div>
         </div>
 
-        <!-- 4. Favicon Configuration -->
-        <div class="field-card">
-          <label class="field-label" for="faviconInput">Browser Favicon URL</label>
-          <p class="field-desc">Browser tab icon URL (.ico or .png).</p>
-          <div class="favicon-row">
-            <input id="faviconInput"
-                   type="text" 
-                   class="text-input" 
-                   [ngModel]="draftBranding.faviconUrl" 
-                   (ngModelChange)="onFaviconChange($event)" 
-                   placeholder="https://example.com/favicon.ico" />
-            <div *ngIf="draftBranding.faviconUrl" class="favicon-preview-box">
-              <img [src]="draftBranding.faviconUrl" alt="Favicon" class="favicon-img" (error)="onFaviconError()" />
+        <!-- 2C. Favicon -->
+        <div class="asset-field-group">
+          <label class="field-label">Favicon</label>
+
+          <div *ngIf="hasFavicon" class="asset-preview-card">
+            <div class="asset-logo-box favicon-box">
+              <img [src]="draftBranding.favicon || draftBranding.faviconUrl" (error)="removeFavicon()" alt="Favicon" class="favicon-img" />
             </div>
+            <button type="button" class="btn-remove-asset" (click)="removeFavicon()">
+              Remove
+            </button>
+          </div>
+
+          <div *ngIf="!hasFavicon" class="asset-upload-card">
+            <label class="upload-dropzone">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Upload image</span>
+              <input type="file" 
+                     accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp, image/x-icon, image/vnd.microsoft.icon" 
+                     (change)="onFaviconFileSelected($event)" 
+                     style="display: none;" />
+            </label>
           </div>
         </div>
 
       </div>
+
     </div>
   `,
   styles: [`
-    .tab-pane {
+    .branding-tab-pane {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-    }
-
-    .branding-intro {
-      margin-bottom: 2px;
-    }
-
-    .branding-header-title {
-      font-size: 14px;
-      font-weight: 800;
-      color: #0f172a;
-      margin: 0;
-    }
-
-    .branding-header-sub {
-      font-size: 11.5px;
-      color: #64748b;
-      margin: 2px 0 0 0;
+      gap: 12px;
+      padding: 0;
+      font-family: inherit;
+      overflow: hidden;
     }
 
     .branding-alert {
       display: flex;
       align-items: center;
       gap: 8px;
-      border-radius: 6px;
       padding: 8px 12px;
-      font-size: 11.5px;
-      font-weight: 600;
+      border-radius: 6px;
+      font-size: 12px;
     }
-
     .branding-alert.error {
       background: #fef2f2;
       border: 1px solid #fecaca;
-      color: #dc2626;
+      color: #b91c1c;
     }
 
-    .branding-fields-wrapper {
+    .branding-section {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
-    .field-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .field-label {
-      font-size: 12.5px;
+    .section-title {
+      margin: 0;
+      font-size: 13px;
       font-weight: 700;
       color: #0f172a;
+      letter-spacing: -0.2px;
     }
 
-    .field-desc {
-      font-size: 11px;
-      color: #64748b;
-      margin: 0 0 6px 0;
-      line-height: 1.35;
-    }
-
-    .text-input {
-      width: 100%;
-      padding: 8px 12px;
-      font-size: 13px;
-      color: #0f172a;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      outline: none;
-      box-sizing: border-box;
-      font-family: inherit;
-    }
-
-    .text-input:focus {
-      border-color: #2563eb;
-      background: #ffffff;
-    }
-
-    .logo-preview-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 4px;
-    }
-
-    .logo-box {
-      width: 64px;
-      height: 64px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      padding: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .logo-img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .no-logo-placeholder {
-      font-size: 10px;
-      font-weight: 600;
-      color: #94a3b8;
-    }
-
-    .logo-action-buttons {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .btn-action-brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 12px;
-      font-size: 11.5px;
-      font-weight: 600;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      font-family: inherit;
-    }
-
-    .btn-upload {
-      background: #2563eb;
-      color: #ffffff;
-      border: 1px solid #2563eb;
-    }
-
-    .btn-upload:hover {
-      background: #1d4ed8;
-      border-color: #1d4ed8;
-    }
-
-    .btn-remove {
-      background: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-
-    .btn-remove:hover {
-      background: #fee2e2;
-    }
-
-    .btn-reset-default {
-      background: #f1f5f9;
-      color: #475569;
-      border: 1px solid #cbd5e1;
-    }
-
-    .btn-reset-default:hover {
-      background: #e2e8f0;
-      color: #0f172a;
-    }
-
-    .brand-colors-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 4px;
-    }
-
-    .color-item-wrap {
+    .field-group, .asset-field-group {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .color-item-lbl {
+    .field-label {
       font-size: 11px;
       font-weight: 600;
       color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
     }
 
-    .color-picker-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .color-swatch-input {
-      width: 36px;
+    .branding-input {
+      width: 100%;
       height: 36px;
-      border: 1px solid #cbd5e1;
+      padding: 0 12px;
+      border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 0;
-      cursor: pointer;
-      background: transparent;
-      flex-shrink: 0;
+      font-size: 13px;
+      color: #0f172a;
+      background: #ffffff;
+      transition: all 0.15s ease;
+      box-sizing: border-box;
+    }
+    .branding-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
 
-    .hex-input {
-      font-family: monospace;
-      font-size: 12px;
-      padding: 7px 8px;
-    }
-
-    .favicon-row {
+    .asset-preview-card {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: space-between;
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #ffffff;
+      box-sizing: border-box;
     }
 
-    .favicon-preview-box {
-      width: 32px;
+    .asset-logo-box {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
       height: 32px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f8fafc;
-      flex-shrink: 0;
+      max-width: 140px;
     }
-
-    .favicon-img {
+    .asset-img {
+      max-height: 28px;
+      max-width: 120px;
+      object-fit: contain;
+    }
+    .favicon-box .favicon-img {
       width: 20px;
       height: 20px;
       object-fit: contain;
     }
 
-    /* Dark Mode styles for branding tab */
-    :host-context([data-theme='dark']) .branding-header-title,
-    :host-context(.dark-theme) .branding-header-title {
+    .btn-remove-asset {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.15s ease;
+    }
+    .btn-remove-asset:hover {
+      color: #dc2626;
+      text-decoration: underline;
+    }
+
+    .upload-dropzone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      height: 38px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-sizing: border-box;
+    }
+    .upload-dropzone:hover {
+      border-color: #3b82f6;
+      color: #2563eb;
+      background: #eff6ff;
+    }
+
+    /* Dark Mode styling */
+    :host-context([data-theme='dark']) .section-title,
+    :host-context(.dark-theme) .section-title {
       color: #f8fafc;
     }
-
-    :host-context([data-theme='dark']) .field-card,
-    :host-context(.dark-theme) .field-card {
-      background: #0b1220;
-      border-color: #243247;
-    }
-
     :host-context([data-theme='dark']) .field-label,
     :host-context(.dark-theme) .field-label {
+      color: #94a3b8;
+    }
+    :host-context([data-theme='dark']) .branding-input,
+    :host-context(.dark-theme) .branding-input {
+      background: #0f172a;
+      border-color: #334155;
       color: #f8fafc;
     }
-
-    :host-context([data-theme='dark']) .text-input,
-    :host-context(.dark-theme) .text-input {
-      background: #111827;
-      border-color: #243247;
-      color: #f8fafc;
-    }
-
-    :host-context([data-theme='dark']) .logo-box,
-    :host-context(.dark-theme) .logo-box,
-    :host-context([data-theme='dark']) .favicon-preview-box,
-    :host-context(.dark-theme) .favicon-preview-box {
-      background: #111827;
-      border-color: #243247;
-    }
-
-    :host-context([data-theme='dark']) .btn-reset-default,
-    :host-context(.dark-theme) .btn-reset-default {
-      background: #111827;
-      border-color: #243247;
+    :host-context([data-theme='dark']) .asset-preview-card,
+    :host-context(.dark-theme) .asset-preview-card,
+    :host-context([data-theme='dark']) .upload-dropzone,
+    :host-context(.dark-theme) .upload-dropzone {
+      background: #0f172a;
+      border-color: #334155;
       color: #cbd5e1;
     }
   `]
 })
 export class BrandingTabComponent {
-  get draftLogoUrl(): string {
-    const url = this.draftBranding?.logoUrl;
-    if (!url || url.length === 9122 || (url.startsWith('data:image/jpeg;base64,') && url.length < 12000)) {
-      return DEFAULT_AUTH_LOGO;
-    }
-    return url;
-  }
-
-  onLogoError(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    if (img && img.src !== DEFAULT_AUTH_LOGO) {
-      img.src = DEFAULT_AUTH_LOGO;
-    }
-  }
-
   private appearanceService = inject(AppearanceService);
-  private authService = inject(AuthService);
-  private http = inject(HttpClient);
 
   uploadError: string | null = null;
+  readonly defaultTermsText = 'By signing in you agree to our Terms of Service and Privacy Policy.';
+  readonly defaultAppLogo = DEFAULT_AUTH_LOGO;
 
   get draftBranding(): BrandingConfig {
     return this.appearanceService.draft.branding;
   }
 
-  get primaryColor(): string {
-    return this.appearanceService.draft.branding.primaryColor || this.appearanceService.draft.colors.primary || '#2563eb';
+  get hasLoginLogo(): boolean {
+    const l = this.draftBranding.loginLogo;
+    return !!(l && l.trim().length > 0);
   }
 
-  get secondaryColor(): string {
-    return this.appearanceService.draft.branding.secondaryColor || this.appearanceService.draft.colors.secondary || '#475569';
+  get loginLogoDisplay(): string {
+    const l = this.draftBranding.loginLogo;
+    if (!l || l.length === 9122 || (l.startsWith('data:image/jpeg;base64,') && l.length < 12000)) {
+      return this.defaultAppLogo;
+    }
+    return l;
   }
 
-  onAppNameChange(appName: string): void {
+  get hasSidebarLogo(): boolean {
+    const s = this.draftBranding.sidebarLogo;
+    return !!(s && s.trim().length > 0);
+  }
+
+  get sidebarLogoDisplay(): string {
+    const s = this.draftBranding.sidebarLogo;
+    if (!s || s.length === 9122 || (s.startsWith('data:image/jpeg;base64,') && s.length < 12000)) {
+      return this.defaultAppLogo;
+    }
+    return s;
+  }
+
+  get hasFavicon(): boolean {
+    const f = this.draftBranding.favicon || this.draftBranding.faviconUrl;
+    return !!(f && f.trim().length > 0);
+  }
+
+  onAppNameChange(val: string): void {
     this.appearanceService.updateDraftBranding({
-      applicationName: appName,
-      appName: appName,
-      appTitle: appName
+      applicationName: val,
+      appName: val,
+      appTitle: val
     });
   }
 
-  onSubtitleChange(appSubtitle: string): void {
-    this.appearanceService.updateDraftBranding({ appSubtitle });
+  onTermsChange(val: string): void {
+    this.appearanceService.updateDraftBranding({
+      termsPrivacyText: val
+    });
   }
 
-  onPrimaryColorChange(color: string): void {
-    this.appearanceService.updateDraftBranding({ primaryColor: color });
-    this.appearanceService.updateDraftColors({ primary: color, accent: color });
+  onLoginLogoFileSelected(event: Event): void {
+    this.processImageUpload(event, (dataUrl) => {
+      this.appearanceService.updateDraftBranding({
+        loginLogo: dataUrl,
+        logoUrl: dataUrl
+      });
+    });
   }
 
-  onSecondaryColorChange(color: string): void {
-    this.appearanceService.updateDraftBranding({ secondaryColor: color });
-    this.appearanceService.updateDraftColors({ secondary: color });
+  removeLoginLogo(): void {
+    this.uploadError = null;
+    this.appearanceService.updateDraftBranding({
+      loginLogo: ''
+    });
   }
 
-  onFaviconChange(faviconUrl: string): void {
-    this.appearanceService.updateDraftBranding({ faviconUrl });
+  onLoginLogoError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.defaultAppLogo) {
+      img.src = this.defaultAppLogo;
+    }
   }
 
-  onFaviconError(): void {
-    console.warn('Favicon URL failed to load');
+  onSidebarLogoFileSelected(event: Event): void {
+    this.processImageUpload(event, (dataUrl) => {
+      this.appearanceService.updateDraftBranding({
+        sidebarLogo: dataUrl
+      });
+    });
   }
 
-  onFileSelected(event: Event): void {
+  removeSidebarLogo(): void {
+    this.uploadError = null;
+    this.appearanceService.updateDraftBranding({
+      sidebarLogo: ''
+    });
+  }
+
+  onSidebarLogoError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.defaultAppLogo) {
+      img.src = this.defaultAppLogo;
+    }
+  }
+
+  onFaviconFileSelected(event: Event): void {
+    this.processImageUpload(event, (dataUrl) => {
+      this.appearanceService.updateDraftBranding({
+        favicon: dataUrl,
+        faviconUrl: dataUrl
+      });
+    });
+  }
+
+  removeFavicon(): void {
+    this.uploadError = null;
+    this.appearanceService.updateDraftBranding({
+      favicon: '',
+      faviconUrl: ''
+    });
+  }
+
+  private processImageUpload(event: Event, onSuccess: (dataUrl: string) => void): void {
     this.uploadError = null;
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
     const file = input.files[0];
-
-    // 1. Validate file type
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      this.uploadError = `Invalid file format (${file.type || 'unknown'}). Please upload a PNG, JPEG, SVG, or WebP image.`;
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
+    if (!allowed.includes(file.type) && !file.name.endsWith('.ico')) {
+      this.uploadError = 'Please upload a valid image file (PNG, JPG, SVG, WEBP, or ICO).';
       return;
     }
 
-    // 2. Validate file size (max 2MB)
-    const maxSizeBytes = 2 * 1024 * 1024;
-    if (file.size > maxSizeBytes) {
-      this.uploadError = `File size ${(file.size / (1024 * 1024)).toFixed(2)} MB exceeds the maximum 2.0 MB limit.`;
+    if (file.size > 2 * 1024 * 1024) {
+      this.uploadError = 'Image file size exceeds maximum limit of 2MB.';
       return;
     }
 
-    // 3. Read image as Data URL
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-
-      // Call API endpoint /api/appearance/logo
-      this.http.post<{ success: boolean; logoUrl: string }>('/api/appearance/logo', {
-        fileData: dataUrl,
-        filename: file.name
-      }).subscribe({
-        next: (res) => {
-          const versionedUrl = res?.logoUrl || `${dataUrl}#v=${Date.now()}`;
-          this.appearanceService.updateDraftBranding({ logoUrl: versionedUrl });
-        },
-        error: (err) => {
-          // If server rejects, display error
-          this.uploadError = err.error?.message || 'Failed to upload logo to server.';
-        }
-      });
+      onSuccess(dataUrl);
+      input.value = '';
     };
     reader.onerror = () => {
-      this.uploadError = 'Error reading image file. Please try another file.';
+      this.uploadError = 'Failed to read image file.';
     };
     reader.readAsDataURL(file);
-  }
-
-  removeLogo(): void {
-    this.uploadError = null;
-    this.appearanceService.updateDraftBranding({ logoUrl: '' });
-  }
-
-  resetToDefaultLogo(): void {
-    this.uploadError = null;
-    this.appearanceService.updateDraftBranding({
-      logoUrl: DEFAULT_APPEARANCE_STATE.branding.logoUrl,
-      applicationName: DEFAULT_APPEARANCE_STATE.branding.applicationName,
-      appName: DEFAULT_APPEARANCE_STATE.branding.appName,
-      appTitle: DEFAULT_APPEARANCE_STATE.branding.appTitle,
-      appSubtitle: DEFAULT_APPEARANCE_STATE.branding.appSubtitle,
-      primaryColor: DEFAULT_APPEARANCE_STATE.colors.primary,
-      secondaryColor: DEFAULT_APPEARANCE_STATE.colors.secondary
-    });
-    this.appearanceService.updateDraftColors({
-      primary: DEFAULT_APPEARANCE_STATE.colors.primary,
-      secondary: DEFAULT_APPEARANCE_STATE.colors.secondary
-    });
   }
 }

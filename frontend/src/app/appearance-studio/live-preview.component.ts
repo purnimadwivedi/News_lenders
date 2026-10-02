@@ -531,7 +531,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                 </div>
 
                 <div class="real-impact-chart-box">
-                  <svg viewBox="0 0 280 85" style="width: 100%; height: 85px; display: block;">
+                  <svg viewBox="0 0 280 85" style="width: 100%; height: 64px; display: block;">
                     <!-- Baseline -->
                     <line x1="20" y1="65" x2="260" y2="65" [attr.stroke]="isDark ? '#243247' : '#e2e8f0'" stroke-width="1.2" />
 
@@ -587,7 +587,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                 </div>
 
                 <div class="real-donut-wrap">
-                  <svg viewBox="0 0 100 100" style="width: 75px; height: 75px; flex-shrink: 0;">
+                  <svg viewBox="0 0 100 100" style="width: 54px; height: 54px; flex-shrink: 0;">
                     <!-- Segments -->
                     <circle cx="50" cy="50" r="32" fill="none" stroke="#2563eb" stroke-width="12" stroke-dasharray="80 200" stroke-dashoffset="0" />
                     <circle cx="50" cy="50" r="32" fill="none" stroke="#f37819" stroke-width="12" stroke-dasharray="56 200" stroke-dashoffset="-80" />
@@ -636,18 +636,20 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
       flex-direction: column;
       height: 100%;
       width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .preview-meta-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       flex-shrink: 0;
     }
 
     .preview-tag-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       color: #0f172a;
       margin: 0;
@@ -655,7 +657,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .preview-tag-sub {
-      font-size: 11px;
+      font-size: 10.5px;
       color: #64748b;
       margin-top: 1px;
     }
@@ -663,20 +665,20 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .preview-mode-tag {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       color: #1d4ed8;
-      padding: 3px 8px;
+      padding: 2px 7px;
       border-radius: 12px;
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.3px;
     }
 
     .pulse-indicator {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: #2563eb;
     }
@@ -688,17 +690,17 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
       flex: 1;
       display: flex;
       border: 1px solid #e2e8f0;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
       background: #f8fafc;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      min-height: 480px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      min-height: 0;
+      max-height: 100%;
       transition: all 0.2s ease;
       --preview-scale: 1;
     }
 
     .real-app-shell.preview-isolated {
-      /* Prevent clicks from navigating real application or causing mutations */
       user-select: none;
     }
 
@@ -706,30 +708,32 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
        Real Sidebar
        ---------------------------------------------------- */
     .real-sidebar {
-      width: 165px;
-      min-width: 165px;
+      width: 155px;
+      min-width: 155px;
       background: #1e293b;
       color: #ffffff;
-      padding: 12px 10px;
+      padding: 10px 8px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
       flex-shrink: 0;
+      overflow: hidden;
       transition: background 0.2s ease;
     }
 
     .real-brand-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding-bottom: 6px;
+      gap: 7px;
+      padding-bottom: 5px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
     }
 
     .real-brand-logo {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       object-fit: contain;
       background: #ffffff;
       padding: 2px;
@@ -744,7 +748,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .real-brand-name {
-      font-size: calc(12.5px * var(--preview-scale, 1));
+      font-size: calc(11.5px * var(--preview-scale, 1));
       font-weight: 800;
       color: #ffffff;
       white-space: nowrap;
@@ -754,7 +758,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .real-brand-sub {
-      font-size: calc(9.5px * var(--preview-scale, 1));
+      font-size: calc(8.5px * var(--preview-scale, 1));
       color: #94a3b8;
       white-space: nowrap;
       overflow: hidden;
@@ -765,16 +769,18 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-nav-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      flex: 1;
+      overflow: hidden;
     }
 
     .real-nav-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 8px;
-      font-size: calc(11px * var(--preview-scale, 1));
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: calc(10px * var(--preview-scale, 1));
       font-weight: 600;
       color: #94a3b8;
       cursor: default;
@@ -790,18 +796,19 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
 
     .real-sidebar-footer {
       margin-top: auto;
-      font-size: calc(10px * var(--preview-scale, 1));
+      font-size: calc(9px * var(--preview-scale, 1));
       color: #94a3b8;
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 4px;
+      gap: 5px;
+      padding: 5px 4px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
     }
 
     .status-dot-green {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #10b981;
     }
@@ -818,8 +825,8 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .real-app-header {
-      height: 48px;
-      padding: 0 16px;
+      height: 40px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -829,7 +836,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .real-page-title {
-      font-size: calc(14px * var(--preview-scale, 1));
+      font-size: calc(12.5px * var(--preview-scale, 1));
       font-weight: 800;
       margin: 0;
       letter-spacing: -0.01em;
@@ -838,12 +845,12 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-header-right {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .real-btn-star {
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: rgba(37, 99, 235, 0.08);
       display: flex;
@@ -855,19 +862,19 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-user-profile-box {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
-      border-radius: 20px;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 16px;
       border: 1px solid #e2e8f0;
       background: #ffffff;
     }
 
     .real-avatar {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       color: #ffffff;
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 800;
       display: flex;
       align-items: center;
@@ -880,32 +887,41 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .real-user-name {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       line-height: 1.1;
     }
 
     .real-user-role {
-      font-size: 8.5px;
+      font-size: 8px;
     }
 
     .real-content-scroll {
       flex: 1;
-      overflow-y: auto;
-      padding: 12px 14px;
+      overflow: hidden;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      box-sizing: border-box;
+    }
+
+    .real-content-scroll::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     .real-content-scroll.density-compact {
-      padding: 8px 10px;
-      gap: 8px;
+      padding: 6px 8px;
+      gap: 5px;
     }
 
     .real-content-scroll.density-spacious {
-      padding: 18px 20px;
-      gap: 14px;
+      padding: 12px 14px;
+      gap: 8px;
     }
 
     /* ----------------------------------------------------
@@ -914,20 +930,21 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-chocolate {
       background: linear-gradient(135deg, #492812 0%, #2e1709 100%);
       color: #ffffff;
-      padding: 12px 14px;
+      padding: 8px 10px;
       border-radius: 8px;
-      box-shadow: 0 4px 14px rgba(46, 23, 9, 0.25);
+      box-shadow: 0 3px 10px rgba(46, 23, 9, 0.25);
+      flex-shrink: 0;
     }
 
     .banner-top-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .chocolate-title {
-      font-size: calc(13px * var(--preview-scale, 1));
+      font-size: calc(11px * var(--preview-scale, 1));
       font-weight: 800;
       color: #ffffff;
       margin: 0;
@@ -936,12 +953,12 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .pill-filter-mock {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       background: rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.25);
-      padding: 3px 10px;
-      border-radius: 14px;
-      font-size: calc(10px * var(--preview-scale, 1));
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-size: calc(8.5px * var(--preview-scale, 1));
       font-weight: 600;
       color: #ffffff;
     }
@@ -949,17 +966,17 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-stat-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 6px;
     }
 
     .real-stat-card {
       background: #ffffff;
-      border-radius: 8px;
-      padding: 8px 10px;
+      border-radius: 6px;
+      padding: 5px 7px;
       display: flex;
       flex-direction: column;
       color: #0f172a;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
     .stat-card-top {
@@ -969,15 +986,15 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     }
 
     .stat-value {
-      font-size: calc(18px * var(--preview-scale, 1));
+      font-size: calc(14px * var(--preview-scale, 1));
       font-weight: 800;
       line-height: 1.1;
     }
 
     .stat-icon-wrap {
-      width: 22px;
-      height: 22px;
-      border-radius: 5px;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -989,17 +1006,17 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .icon-cyan { background: #ecfeff; color: #0891b2; }
 
     .stat-lbl {
-      font-size: calc(9px * var(--preview-scale, 1));
+      font-size: calc(8px * var(--preview-scale, 1));
       font-weight: 700;
       color: #475569;
-      margin-top: 3px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .stat-sub {
-      font-size: calc(7.5px * var(--preview-scale, 1));
+      font-size: calc(6.8px * var(--preview-scale, 1));
       color: #94a3b8;
       white-space: nowrap;
       overflow: hidden;
@@ -1011,28 +1028,33 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
        ---------------------------------------------------- */
     .real-charts-grid {
       display: grid;
-      grid-template-columns: 1.4fr 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 1.3fr 1fr 1fr;
+      gap: 6px;
+      flex: 1;
+      min-height: 0;
     }
 
     .real-chart-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .chart-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
+      flex-shrink: 0;
     }
 
     .chart-card-title {
-      font-size: calc(11px * var(--preview-scale, 1));
+      font-size: calc(9.5px * var(--preview-scale, 1));
       font-weight: 800;
       color: inherit;
       margin: 0;
@@ -1043,14 +1065,14 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
 
     .chart-header-actions {
       display: flex;
-      gap: 4px;
+      gap: 3px;
     }
 
     .mini-pill-btn {
-      font-size: 8.5px;
+      font-size: 7.5px;
       font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 10px;
+      padding: 1px 5px;
+      border-radius: 8px;
       border: 1px solid #cbd5e1;
       color: #64748b;
     }
@@ -1066,18 +1088,20 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-lender-bars-wrap {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 3px;
+      justify-content: space-around;
+      flex: 1;
     }
 
     .lender-bar-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .lender-name {
-      width: 70px;
-      font-size: calc(9px * var(--preview-scale, 1));
+      width: 58px;
+      font-size: calc(7.8px * var(--preview-scale, 1));
       font-weight: 600;
       color: inherit;
       white-space: nowrap;
@@ -1087,23 +1111,23 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
 
     .bar-track {
       flex: 1;
-      height: 6px;
+      height: 4px;
       background: rgba(0, 0, 0, 0.05);
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
     }
 
     .bar-fill {
       height: 100%;
-      border-radius: 3px;
+      border-radius: 2px;
       transition: width 0.3s ease;
     }
 
     .bar-num {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 700;
       color: inherit;
-      width: 16px;
+      width: 14px;
       text-align: right;
     }
 
@@ -1111,27 +1135,27 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
     .real-donut-wrap {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex: 1;
     }
 
     .donut-legend-col {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
       flex: 1;
     }
 
     .legend-row {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 8.5px;
+      gap: 3px;
+      font-size: 7.5px;
     }
 
     .legend-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       flex-shrink: 0;
     }
@@ -1190,8 +1214,25 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
   `]
 })
 export class LivePreviewComponent {
+  get loginLogoUrl(): string {
+    const url = this.draft?.branding?.loginLogo || this.draft?.branding?.logoUrl;
+    if (!url || url.length === 9122 || (url.startsWith('data:image/jpeg;base64,') && url.length < 12000)) {
+      return DEFAULT_AUTH_LOGO;
+    }
+    return url;
+  }
+
+  onLoginLogoError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== DEFAULT_AUTH_LOGO) {
+      img.src = DEFAULT_AUTH_LOGO;
+    }
+  }
+
+  @Input() activeTab: string = 'branding';
+  previewTarget: 'app' | 'login' = 'app';
   get previewLogoUrl(): string {
-    const url = this.draft?.branding?.logoUrl;
+    const url = this.draft?.branding?.sidebarLogo || this.draft?.branding?.logoUrl;
     if (!url || url.length === 9122 || (url.startsWith('data:image/jpeg;base64,') && url.length < 12000)) {
       return DEFAULT_AUTH_LOGO;
     }

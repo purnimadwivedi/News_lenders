@@ -16,7 +16,7 @@ export const routes: Routes = [
   { path: 'companies', component: CompaniesComponent, canActivate: [authGuard] },
   { path: 'recipients', component: RecipientsComponent, canActivate: [authGuard] },
   { path: 'runs', component: RunsComponent, canActivate: [authGuard] },
-  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
+  { path: 'settings', component: SettingsComponent, canActivate: [authGuard], title: 'LLM Configuration - Lender News' },
   { path: '**', redirectTo: 'dashboard' }
 ];
 

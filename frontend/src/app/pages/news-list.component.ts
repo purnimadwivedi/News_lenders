@@ -42,7 +42,7 @@ interface EditState {
         </div>
         <div class="toolbar-item">
           <select [(ngModel)]="riskType" (ngModelChange)="reload()">
-            <option value="">All risk types</option>
+            <option value="">All categories</option>
             <option value="financial">Financial</option>
             <option value="operational">Operational</option>
             <option value="reputational">Reputational</option>
@@ -118,7 +118,7 @@ interface EditState {
             </select>
           </div>
           <div>
-            <label>Risk type</label>
+            <label>Category</label>
             <select [(ngModel)]="editState.riskType">
               <option value="financial">Financial</option>
               <option value="operational">Operational</option>

@@ -1,4 +1,4 @@
-const Anthropic = require('@anthropic-ai/sdk');
+﻿const Anthropic = require('@anthropic-ai/sdk');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const NewsArticle = require('../models/NewsArticle');
@@ -17,79 +17,107 @@ const DEFAULT_RISK_TYPES = {
   strategic: 'long-term industry trends, market shifts, partnership changes'
 };
 
-const CLASSIFY_TOOL = {
-  name: 'record_risk_classification',
-  description: 'Record the risk assessment of a news article for the user company.',
-  input_schema: {
-    type: 'object',
-    required: ['riskType', 'riskLevel', 'impactLevel', 'sentiment', 'rationale', 'confidence'],
-    properties: {
-      riskType: {
-        type: 'string',
-        enum: ['financial', 'operational', 'reputational', 'regulatory', 'competitive', 'strategic', 'none'],
-        description: 'Primary category of risk this news represents.'
-      },
-      riskLevel: {
-        type: 'string',
-        enum: ['Low', 'Medium', 'High', 'Critical'],
-        description: 'Severity of the underlying risk event itself.'
-      },
-      impactLevel: {
-        type: 'string',
-        enum: ['Low', 'Medium', 'High', 'Critical'],
-        description: 'How materially this affects the user company specifically.'
-      },
-      sentiment: {
-        type: 'string',
-        enum: ['Positive', 'Neutral', 'Negative'],
-        description: 'Overall sentiment for the user company.'
-      },
-      rationale: {
-        type: 'string',
-        description: '1-2 sentence explanation of the assessment.'
-      },
-      keyEntities: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Notable people, companies, regulators, products, or markets mentioned.'
-      },
-      suggestedActions: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Concrete actions the user company should consider. Empty array if none.'
-      },
-      confidence: {
-        type: 'number',
-        minimum: 0,
-        maximum: 1,
-        description: 'Confidence in the assessment between 0 and 1.'
+function getClassifierTool(cfg) {
+  const catEnums = (cfg?.categories || []).map((c) => c.id).filter(Boolean);
+  if (!catEnums.length) {
+    catEnums.push('financial', 'operational', 'reputational', 'regulatory', 'competitive', 'strategic');
+  }
+  if (!catEnums.includes('none')) catEnums.push('none');
+
+  return {
+    name: 'record_risk_classification',
+    description: 'Record the risk assessment of a news article for the user company.',
+    input_schema: {
+      type: 'object',
+      required: ['riskType', 'impactLevel', 'sentiment', 'rationale', 'confidence'],
+      properties: {
+        riskType: {
+          type: 'string',
+          enum: catEnums,
+          description: 'Primary category of this news.'
+        },
+        riskLevel: {
+          type: 'string',
+          enum: ['Low', 'Medium', 'High', 'Critical'],
+          description: 'Severity of the underlying event itself.'
+        },
+        impactLevel: {
+          type: 'string',
+          enum: ['Low', 'Medium', 'High', 'Critical'],
+          description: 'How materially this affects the user company specifically, adhering to IMGC Specific Definition and LLM Instructions.'
+        },
+        sentiment: {
+          type: 'string',
+          enum: ['Positive', 'Neutral', 'Negative'],
+          description: 'Overall sentiment for the user company.'
+        },
+        rationale: {
+          type: 'string',
+          description: '1-2 sentence explanation of the assessment.'
+        },
+        keyEntities: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Notable people, companies, regulators, products, or markets mentioned.'
+        },
+        suggestedActions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Concrete actions the user company should consider. Empty array if none.'
+        },
+        confidence: {
+          type: 'number',
+          minimum: 0,
+          maximum: 1,
+          description: 'Confidence in the assessment between 0 and 1.'
+        }
       }
     }
-  }
-};
-
-function levelSection(label, defs) {
-  const levels = ['Low', 'Medium', 'High', 'Critical'];
-  const lines = levels.map((l) => {
-    const custom = (defs && defs[l]) ? defs[l].trim() : '';
-    return custom ? `- ${l}: ${custom}` : `- ${l}: (use general industry judgement)`;
-  });
-  return `${label}:\n${lines.join('\n')}`;
+  };
 }
 
-function riskTypeSection(defs) {
-  return Object.entries(DEFAULT_RISK_TYPES)
-    .map(([type, fallback]) => {
-      const custom = defs && defs[type] ? defs[type].trim() : '';
-      return `- ${type}: ${custom || fallback}`;
+function impactSection(defs) {
+  const levels = ['Low', 'Medium', 'High', 'Critical'];
+  const lines = levels.map((l) => {
+    const item = defs && defs[l];
+    let imgc = '';
+    let llm = '';
+    if (typeof item === 'object' && item !== null) {
+      imgc = (item.imgcDefinition || '').trim();
+      llm = (item.llmInstructions || '').trim();
+    } else if (typeof item === 'string') {
+      imgc = item.trim();
+    }
+
+    let text = `- ${l}:`;
+    if (imgc) text += `\n    IMGC Specific Definition: ${imgc}`;
+    if (llm) text += `\n    LLM Instructions: ${llm}`;
+    if (!imgc && !llm) text += ` (use general industry judgement)`;
+    return text;
+  });
+  return `Impact level definitions (how this organisation defines impact on itself):\n${lines.join('\n')}`;
+}
+
+function categorySection(cfg) {
+  const cats = (cfg?.categories && cfg.categories.length > 0)
+    ? cfg.categories
+    : Object.keys(DEFAULT_RISK_TYPES).map((k) => ({
+        id: k,
+        name: k.charAt(0).toUpperCase() + k.slice(1),
+        description: DEFAULT_RISK_TYPES[k]
+      }));
+
+  return cats
+    .map((c) => {
+      const id = c.id || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const desc = c.description || DEFAULT_RISK_TYPES[id] || '';
+      return `- ${c.name} (id: "${id}"): ${desc || 'Relevant events in this category'}`;
     })
     .join('\n');
 }
 
 function buildSystemPrompt(cfg) {
   const impactDefs = cfg?.impactLevelDefinitions;
-  const riskDefs = cfg?.riskLevelDefinitions;
-  const typeDefs = cfg?.riskTypeDefinitions;
   const extra = (cfg?.extraGuidance || '').trim();
 
   return `You are a senior risk analyst working for ${env.company.name} (industry: ${env.company.industry}).
@@ -97,21 +125,15 @@ function buildSystemPrompt(cfg) {
 Company context:
 ${env.company.context || '(no additional context provided)'}
 
-Your job is to analyze news articles about companies the user is monitoring and classify each item along several risk dimensions, specifically through the lens of how it could affect ${env.company.name}.
+Your job is to analyze news articles about companies the user is monitoring and classify each item along several dimensions, specifically through the lens of how it could affect ${env.company.name}.
 
-Risk type definitions:
-${riskTypeSection(typeDefs)}
-- none: not actually risk-relevant (puff pieces, irrelevant mentions, sponsored content)
+Category definitions:
+${categorySection(cfg)}
+- none: not actually relevant (puff pieces, irrelevant mentions, sponsored content)
 
-Risk level vs impact level — these are different:
-- riskLevel = how severe is the underlying event in absolute terms?
-- impactLevel = how materially does it affect ${env.company.name} specifically? A major bank failure is High risk but only High impact for us if we have exposure. An RBI mortgage-rule change is potentially Critical impact even if low-key in absolute risk terms.
+${impactSection(impactDefs)}
 
-${levelSection('Impact level definitions (how this organisation defines impact on itself)', impactDefs)}
-
-${levelSection('Risk level definitions (how this organisation interprets severity of the underlying event)', riskDefs)}
-
-${extra ? `Additional guidance from the team:\n${extra}\n\n` : ''}Be decisive. Pick exactly one bucket per dimension. Confidence below 0.4 means the article is too vague to classify well — return riskType "none" in that case.
+${extra ? `Additional guidance from the team:\n${extra}\n\n` : ''}Be decisive. Pick exactly one category and one impact level. Confidence below 0.4 means the article is too vague to classify well — return riskType "none" and impactLevel "Low" in that case.
 
 You may receive prior examples in the conversation showing how the user has corrected past classifications. Treat those as the ground-truth calibration for this organisation and weight your judgement accordingly.
 
@@ -200,6 +222,7 @@ function buildExampleTurns(examples) {
 async function classifyArticle(article, { examples, config } = {}) {
   const fewShot = examples ?? (await fetchFewShotExamples());
   const cfg = config ?? (await Configuration.getSingleton());
+  const classifyTool = getClassifierTool(cfg);
 
   const messages = [
     ...buildExampleTurns(fewShot),
@@ -216,7 +239,7 @@ async function classifyArticle(article, { examples, config } = {}) {
         cache_control: { type: 'ephemeral' }
       }
     ],
-    tools: [CLASSIFY_TOOL],
+    tools: [classifyTool],
     tool_choice: { type: 'tool', name: 'record_risk_classification' },
     messages
   });
@@ -228,7 +251,7 @@ async function classifyArticle(article, { examples, config } = {}) {
   const out = toolUse.input;
   return {
     riskType: out.riskType,
-    riskLevel: out.riskLevel,
+    riskLevel: out.riskLevel || 'Low',
     impactLevel: out.impactLevel,
     sentiment: out.sentiment,
     rationale: out.rationale || '',
@@ -252,7 +275,7 @@ async function classifyPending({ limit = 50 } = {}) {
     logger.info(`  using ${fewShot.length} user-correction example(s) as few-shot calibration`);
   }
   if (cfg && (cfg.updatedAt || cfg.createdAt)) {
-    logger.info(`  using risk/impact definitions last updated ${new Date(cfg.updatedAt || cfg.createdAt).toISOString()}`);
+    logger.info(`  using impact definitions and categories last updated ${new Date(cfg.updatedAt || cfg.createdAt).toISOString()}`);
   }
 
   let classified = 0;
@@ -269,14 +292,14 @@ async function classifyPending({ limit = 50 } = {}) {
       await article.save();
       classified += 1;
       logger.info(
-        `  ✓ classified [${result.impactLevel} impact / ${result.riskType}] ${article.title.slice(0, 80)}`
+        `  -> classified [${result.impactLevel} impact / ${result.riskType}] ${article.title.slice(0, 80)}`
       );
     } catch (err) {
       failed += 1;
       article.classificationStatus = 'failed';
       article.classificationError = err.message?.slice(0, 500) || 'unknown error';
       await article.save();
-      logger.error(`  ✗ classify failed: ${err.message}`);
+      logger.error(`  -> classify failed: ${err.message}`);
     }
   }
 
@@ -286,5 +309,7 @@ async function classifyPending({ limit = 50 } = {}) {
 module.exports = {
   classifyArticle,
   classifyPending,
-  fetchFewShotExamples
+  fetchFewShotExamples,
+  getClassifierTool,
+  buildSystemPrompt
 };

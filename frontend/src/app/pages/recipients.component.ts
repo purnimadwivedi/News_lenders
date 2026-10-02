@@ -39,10 +39,6 @@ import { Recipient } from '../models';
             <input [(ngModel)]="editing.email" placeholder="name@lender.com" />
           </div>
           <div>
-            <label>Role</label>
-            <input [(ngModel)]="editing.role" placeholder="CRO, Head of Risk, etc." />
-          </div>
-          <div>
             <label>Minimum impact level for alerts</label>
             <select [(ngModel)]="editing.minImpactLevel">
               <option>Low</option>
@@ -80,17 +76,6 @@ import { Recipient } from '../models';
           </svg>
           <input [(ngModel)]="search" placeholder="Search recipient..." />
         </div>
-        <select class="pill-select" [(ngModel)]="selectedRole">
-          <option value="">All Roles</option>
-          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
-        </select>
-        <div style="flex: 1;"></div>
-        <button class="pill-btn" (click)="exportCsv()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export CSV
-        </button>
       </div>
 
       <div class="table-wrap">
@@ -99,7 +84,6 @@ import { Recipient } from '../models';
             <tr>
               <th (click)="sortBy('name')">Name <span class="sort-icon">{{ sortCol === 'name' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('email')">Email <span class="sort-icon">{{ sortCol === 'email' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
-              <th (click)="sortBy('role')">Role <span class="sort-icon">{{ sortCol === 'role' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('minImpactLevel')">Min impact <span class="sort-icon">{{ sortCol === 'minImpactLevel' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('alerts')">Alerts / Digest <span class="sort-icon">{{ sortCol === 'alerts' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('active')">Active <span class="sort-icon">{{ sortCol === 'active' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
@@ -110,7 +94,6 @@ import { Recipient } from '../models';
             <tr *ngFor="let r of pagedItems">
               <td style="font-weight: 500;">{{ r.name }}</td>
               <td style="color: #64748b;">{{ r.email }}</td>
-              <td style="color: #64748b;">{{ r.role || '—' }}</td>
               <td><span class="badge badge-{{ r.minImpactLevel }}">{{ r.minImpactLevel }}</span></td>
               <td style="color: #64748b;">
                 <span [style.color]="r.receiveImmediateAlerts ? '#ea580c' : 'inherit'">{{ r.receiveImmediateAlerts ? 'Alert' : '—' }}</span> / 
@@ -124,7 +107,7 @@ import { Recipient } from '../models';
               </td>
             </tr>
             <tr *ngIf="!pagedItems.length">
-              <td colspan="7" style="text-align:center; padding: 30px; color: #94a3b8;">
+              <td colspan="6" style="text-align:center; padding: 30px; color: #94a3b8;">
                 {{ search.trim() ? 'No recipients match your search.' : 'No recipients yet.' }}
               </td>
             </tr>
@@ -171,7 +154,6 @@ export class RecipientsComponent implements OnInit, DoCheck {
   private api = inject(ApiService);
   items: Recipient[] = [];
   search = '';
-  selectedRole = '';
   editing: Partial<Recipient> | null = null;
   error = '';
   
@@ -198,25 +180,15 @@ export class RecipientsComponent implements OnInit, DoCheck {
     return this.filteredItems.slice(start, start + this.pageSize);
   }
 
-  get roles(): string[] {
-    const r = new Set(this.items.map(i => i.role).filter(Boolean));
-    return Array.from(r).sort() as string[];
-  }
-
   get filteredItems(): Recipient[] {
     let res = [...this.items];
-    
-    if (this.selectedRole) {
-      res = res.filter(r => r.role === this.selectedRole);
-    }
     
     const q = this.search.trim().toLowerCase();
     if (q) {
       res = res.filter(
         (r) =>
           r.name.toLowerCase().includes(q) ||
-          r.email.toLowerCase().includes(q) ||
-          (r.role && r.role.toLowerCase().includes(q))
+          r.email.toLowerCase().includes(q)
       );
     }
 
@@ -240,34 +212,6 @@ export class RecipientsComponent implements OnInit, DoCheck {
     return res;
   }
 
-  exportCsv() {
-    const data = this.filteredItems.map(r => ({
-      Name: r.name,
-      Email: r.email,
-      Role: r.role || '',
-      MinImpactLevel: r.minImpactLevel || '',
-      ImmediateAlerts: r.receiveImmediateAlerts ? 'Yes' : 'No',
-      DailyDigest: r.receiveDailyDigest ? 'Yes' : 'No',
-      Active: r.active ? 'Yes' : 'No'
-    }));
-    
-    if (!data.length) return;
-    
-    const headers = Object.keys(data[0]);
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => headers.map(h => `"${((row as any)[h] || '').toString().replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `recipients_export_${new Date().getTime()}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   ngOnInit() {
     this.load();
   }
@@ -288,7 +232,6 @@ export class RecipientsComponent implements OnInit, DoCheck {
     this.editing = {
       name: '',
       email: '',
-      role: '',
       minImpactLevel: 'High',
       receiveImmediateAlerts: true,
       receiveDailyDigest: true,
@@ -298,16 +241,20 @@ export class RecipientsComponent implements OnInit, DoCheck {
   }
 
   edit(r: Recipient) {
-    this.editing = { ...r };
+    const copy = { ...r };
+    delete (copy as any).role;
+    this.editing = copy;
     this.error = '';
   }
 
   save() {
     if (!this.editing) return;
     this.error = '';
-    const obs = this.editing._id
-      ? this.api.updateRecipient(this.editing._id, this.editing)
-      : this.api.createRecipient(this.editing);
+    const payload = { ...this.editing };
+    delete (payload as any).role;
+    const obs = payload._id
+      ? this.api.updateRecipient(payload._id, payload)
+      : this.api.createRecipient(payload);
     obs.subscribe({
       next: () => {
         this.editing = null;

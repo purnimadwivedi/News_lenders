@@ -42,14 +42,21 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${this.base}/recipients/${id}/test-email`, {});
   }
 
-  listNews(params: Record<string, string> = {}): Observable<{ items: NewsArticle[]; total: number }> {
-    const search = new URLSearchParams(params).toString();
+  listNews(params: Record<string, any> = {}): Observable<{ items: NewsArticle[]; total: number }> {
+    const searchParams: Record<string, string> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') {
+        searchParams[k] = String(v);
+      }
+    }
+    const search = new URLSearchParams(searchParams).toString();
     return this.http.get<{ items: NewsArticle[]; total: number }>(
       `${this.base}/news${search ? '?' + search : ''}`
     );
   }
-  newsStats(): Observable<Stats> {
-    return this.http.get<Stats>(`${this.base}/news/stats`);
+  newsStats(period?: string): Observable<Stats> {
+    const url = period ? `${this.base}/news/stats?period=${period}` : `${this.base}/news/stats`;
+    return this.http.get<Stats>(url);
   }
   getNews(id: string): Observable<NewsArticle> {
     return this.http.get<NewsArticle>(`${this.base}/news/${id}`);
@@ -79,6 +86,15 @@ export class ApiService {
   }
   updateConfig(cfg: Partial<Configuration>): Observable<Configuration> {
     return this.http.put<Configuration>(`${this.base}/config`, cfg);
+  }
+  addCategory(category: { name: string; description?: string }): Observable<Configuration> {
+    return this.http.post<Configuration>(`${this.base}/config/categories`, category);
+  }
+  updateCategory(id: string, category: { name: string; description?: string }): Observable<Configuration> {
+    return this.http.put<Configuration>(`${this.base}/config/categories/${id}`, category);
+  }
+  deleteCategory(id: string): Observable<Configuration> {
+    return this.http.delete<Configuration>(`${this.base}/config/categories/${id}`);
   }
   resetConfig(): Observable<Configuration> {
     return this.http.post<Configuration>(`${this.base}/config/reset`, {});

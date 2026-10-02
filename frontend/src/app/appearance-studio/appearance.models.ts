@@ -115,14 +115,17 @@ export interface DisplayConfig {
 
 export interface BrandingConfig {
   applicationName: string;
-  appName: string;
-  logoUrl: string;
-  faviconUrl?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  // Compatibility fields
+  appName?: string;
   appTitle?: string;
   appSubtitle?: string;
+  termsPrivacyText?: string;
+  loginLogo?: string;
+  sidebarLogo?: string;
+  favicon?: string;
+  faviconUrl?: string;
+  logoUrl: string;
+  primaryColor?: string;
+  secondaryColor?: string;
   logoBorderRadius?: number;
   version?: string | number;
 }
@@ -143,6 +146,17 @@ export interface UserAppearancePreferences {
   density?: DisplayDensity;
   borderRadius?: BorderRadiusSize;
   cardStyle?: CardStyle;
+}
+
+export interface UserAppearance {
+  userId: string;
+  theme: ThemeConfig;
+  colors: ColorsConfig;
+  bg?: BgConfig;
+  display?: DisplayConfig;
+  branding?: BrandingConfig;
+  carousel?: CarouselConfig;
+  updatedAt?: number;
 }
 
 export interface CarouselSlide {
@@ -199,7 +213,13 @@ export function resolveEffectiveAppearance(
         ...tenantConfig.branding,
         applicationName: tenantConfig.branding.applicationName || tenantConfig.branding.appName || resolved.branding.applicationName,
         appName: tenantConfig.branding.appName || tenantConfig.branding.applicationName || resolved.branding.appName,
-        appTitle: tenantConfig.branding.appTitle || tenantConfig.branding.applicationName || tenantConfig.branding.appName || resolved.branding.appTitle
+        appTitle: tenantConfig.branding.appTitle || tenantConfig.branding.applicationName || tenantConfig.branding.appName || resolved.branding.appTitle,
+        termsPrivacyText: tenantConfig.branding.termsPrivacyText !== undefined ? tenantConfig.branding.termsPrivacyText : resolved.branding.termsPrivacyText,
+        loginLogo: tenantConfig.branding.loginLogo || tenantConfig.branding.logoUrl || resolved.branding.loginLogo,
+        sidebarLogo: tenantConfig.branding.sidebarLogo || tenantConfig.branding.logoUrl || resolved.branding.sidebarLogo,
+        favicon: tenantConfig.branding.favicon || tenantConfig.branding.faviconUrl || resolved.branding.favicon,
+        faviconUrl: tenantConfig.branding.faviconUrl || tenantConfig.branding.favicon || resolved.branding.faviconUrl,
+        logoUrl: tenantConfig.branding.sidebarLogo || tenantConfig.branding.loginLogo || tenantConfig.branding.logoUrl || resolved.branding.logoUrl
       };
 
       if (tenantConfig.branding.primaryColor) {

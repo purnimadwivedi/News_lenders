@@ -1,12 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { BehaviorSubject, Observable } from 'rxjs';
+
 export interface UserProfile {
   name: string;
   role: string;
   avatar: string;
   email: string;
   roleKey: string;
+  userId?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +19,16 @@ export class AuthService {
   showLogoutModal = false;
   isLoggingOut = false;
   logoutError: string | null = null;
+
+  // Reactive stream notifying subscribers when the authenticated user changes or logs out
+  private userChangedSubject = new BehaviorSubject<string | null>(this.getInitialUserId());
+  public userChanged$: Observable<string | null> = this.userChangedSubject.asObservable();
+
+  private getInitialUserId(): string | null {
+    if (typeof localStorage === 'undefined') return null;
+    if (!localStorage.getItem('userRole')) return null;
+    return localStorage.getItem('currentUserId') || (localStorage.getItem('userRole') === 'admin' ? 'admin-001' : 'user-001');
+  }
 
   isAuthenticated(): boolean {
     if (typeof localStorage === 'undefined') return false;
@@ -35,7 +48,6 @@ export class AuthService {
     if (permission === 'appearance.branding.manage') {
       return this.isAdmin();
     }
-    // Default admin has full permissions, normal user has personal appearance only
     if (this.isAdmin()) return true;
     return false;
   }
@@ -53,7 +65,7 @@ export class AuthService {
       const stored = localStorage.getItem('currentUserId');
       if (stored) return stored;
     }
-    return this.isAdmin() ? 'admin-meera' : 'user-partner-01';
+    return this.isAdmin() ? 'admin-001' : 'user-001';
   }
 
   setTenantId(tenantId: string): void {
@@ -64,28 +76,53 @@ export class AuthService {
 
   getUserProfile(): UserProfile {
     const roleKey = this.getRole() || 'admin';
+    const userId = this.getUserId();
+
+    let name = roleKey === 'admin' ? 'Meera Nair' : 'User';
+    let email = roleKey === 'admin' ? 'meera.nair@imgc.in' : 'user@lender.com';
+    let avatar = roleKey === 'admin' ? 'MN' : 'US';
+
+    if (userId === 'admin-a' || userId === 'admin-001') {
+      name = 'Admin (Meera)';
+      avatar = 'MN';
+      email = 'admin@imgc.in';
+    } else if (userId === 'user-a' || userId === 'user-001') {
+      name = 'User A (Priya)';
+      avatar = 'UA';
+      email = 'user.a@lender.com';
+    } else if (userId === 'user-b' || userId === 'user-002') {
+      name = 'User B (Rahul)';
+      avatar = 'UB';
+      email = 'user.b@lender.com';
+    }
+
     return {
-      name: roleKey === 'admin' ? 'Meera Nair' : 'User',
+      name,
       role: roleKey === 'admin' ? 'Admin' : 'User',
-      avatar: roleKey === 'admin' ? 'MN' : 'US',
-      email: roleKey === 'admin' ? 'meera.nair@imgc.in' : 'user@lender.com',
-      roleKey
+      avatar,
+      email,
+      roleKey,
+      userId
     };
   }
 
-  login(role: string): void {
+  login(role: string, customUserId?: string, customName?: string): void {
+    const userId = customUserId || (role === 'admin' ? 'admin-001' : 'user-001');
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('userRole', role);
+      localStorage.setItem('currentUserId', userId);
       localStorage.setItem(
         'authSession',
         JSON.stringify({
           authenticated: true,
           role,
-          user: role === 'admin' ? 'Meera Nair' : 'User',
+          userId,
+          user: customName || (role === 'admin' ? 'Admin' : 'User'),
           timestamp: Date.now()
         })
       );
     }
+    this.userChangedSubject.next(userId);
     this.router.navigate(['/dashboard']);
   }
 
@@ -96,6 +133,7 @@ export class AuthService {
 
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('userRole');
+      localStorage.removeItem('currentUserId');
       localStorage.removeItem('authSession');
     }
 
@@ -112,6 +150,7 @@ export class AuthService {
       }
     }
 
+    this.userChangedSubject.next(null);
     this.router.navigate(['/login'], { replaceUrl: true });
   }
 

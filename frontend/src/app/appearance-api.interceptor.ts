@@ -26,6 +26,89 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
   const tenantId = auth.getTenantId();
   const isAdmin = auth.hasPermission('appearance.branding.manage');
 
+  // 0. User-Specific Appearance API: GET /api/appearance (Scoped to current authenticated session)
+  if (req.method === 'GET' && (req.url.endsWith('/api/appearance') || req.url.includes('/api/appearance?'))) {
+    if (!auth.isAuthenticated()) {
+      return throwError(() => new HttpErrorResponse({
+        status: 401,
+        statusText: 'Unauthorized',
+        error: { message: 'Authentication required' }
+      }));
+    }
+
+    const userId = auth.getUserId();
+    let userAppearance = null;
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(`appearance:${userId}`) || localStorage.getItem(`lender_news_user_${userId}_appearance`);
+      if (stored) {
+        try {
+          userAppearance = JSON.parse(stored);
+        } catch (e) {}
+      }
+    }
+
+    return of(new HttpResponse({
+      status: 200,
+      statusText: 'OK',
+      body: userAppearance || {
+        userId,
+        theme: { mode: 'light', presetId: 'enterprise-blue' },
+        colors: {
+          primary: '#2563EB',
+          secondary: '#475569',
+          accent: '#3B82F6',
+          bg: '#F8FAFC',
+          surface: '#FFFFFF',
+          text: '#0F172A',
+          border: '#E2E8F0'
+        },
+        updatedAt: Date.now()
+      }
+    }));
+  }
+
+  // 0. User-Specific Appearance API: PUT /api/appearance (Scoped to current authenticated session)
+  if (req.method === 'PUT' && (req.url.endsWith('/api/appearance') || req.url.includes('/api/appearance?'))) {
+    if (!auth.isAuthenticated()) {
+      return throwError(() => new HttpErrorResponse({
+        status: 401,
+        statusText: 'Unauthorized',
+        error: { message: 'Authentication required' }
+      }));
+    }
+
+    // Backend determines user strictly from authenticated session/token, never request body
+    const userId = auth.getUserId();
+    const body = req.body as any;
+
+    if (typeof localStorage !== 'undefined' && body) {
+      const userAppearance = {
+        ...body,
+        userId,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(`appearance:${userId}`, JSON.stringify(userAppearance));
+      localStorage.setItem(`lender_news_user_${userId}_appearance`, JSON.stringify(body));
+
+      return of(new HttpResponse({
+        status: 200,
+        statusText: 'OK',
+        body: {
+          success: true,
+          userId,
+          appearance: userAppearance,
+          message: 'User appearance configuration updated successfully.'
+        }
+      }));
+    }
+
+    return of(new HttpResponse({
+      status: 200,
+      statusText: 'OK',
+      body: { success: true, userId, appearance: body }
+    }));
+  }
+
   // 1. GET /api/appearance/config — Allowed for all authenticated users
   if (req.method === 'GET' && req.url.includes('/api/appearance/config')) {
     if (!auth.isAuthenticated()) {
@@ -59,6 +142,11 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
         branding: tenantBranding || {
           applicationName: 'Lender News',
           logoUrl: DEFAULT_AUTH_LOGO,
+          loginLogo: DEFAULT_AUTH_LOGO,
+          sidebarLogo: DEFAULT_AUTH_LOGO,
+          favicon: '',
+          faviconUrl: '',
+          termsPrivacyText: 'By signing in you agree to our Terms of Service and Privacy Policy.',
           primaryColor: '#2563EB',
           secondaryColor: '#0F172A',
           version: 1

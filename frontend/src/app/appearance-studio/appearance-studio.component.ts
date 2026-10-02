@@ -146,7 +146,7 @@ export type StudioTab = 'theme' | 'colors' | 'bg' | 'display' | 'branding';
 
         <!-- Right: Fixed Live Preview Panel -->
         <section class="studio-preview-pane">
-          <app-live-preview></app-live-preview>
+          <app-live-preview [activeTab]="activeTab"></app-live-preview>
         </section>
 
       </div>
@@ -382,18 +382,35 @@ export type StudioTab = 'theme' | 'colors' | 'bg' | 'display' | 'branding';
       background: #ffffff;
       border-right: 1px solid #e2e8f0;
       overflow-y: auto;
-      padding: 22px 24px;
+      overflow-x: hidden;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .studio-config-pane::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     .studio-preview-pane {
       flex: 1;
       overflow: hidden;
-      padding: 24px 28px;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
       background: #f8fafc;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .studio-preview-pane::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     /* Toast */

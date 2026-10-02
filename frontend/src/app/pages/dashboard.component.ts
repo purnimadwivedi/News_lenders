@@ -52,25 +52,51 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
       <div class="banner-top-row">
         <h2 class="banner-title">{{ displayTitle }}</h2>
 
-        <!-- Interactive Every Lender Dropdown -->
-        <div class="banner-dropdown-wrap">
-          <button type="button" 
-                  class="banner-filter-pill" 
-                  [class.active]="lenderDropdownOpen"
-                  [class.filtered]="!!selectedCompany"
-                  (click)="toggleLenderDropdown($event)"
-                  aria-haspopup="listbox"
-                  [attr.aria-expanded]="lenderDropdownOpen">
-            <span class="pill-label">{{ selectedCompany ? selectedCompany.name : 'Every Lender' }}</span>
-            <button *ngIf="selectedCompany" 
-                    type="button" 
-                    class="pill-clear-btn" 
-                    (click)="clearSelectedCompany($event)" 
-                    title="Reset to Every Lender">✕</button>
-            <svg class="pill-chevron" [class.open]="lenderDropdownOpen" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <!-- Time-Specific Period Toggle (MTD / QTD / CFY) -->
+          <div class="period-toggle-group" role="group" aria-label="Time period selector">
+            <button type="button" 
+                    class="period-toggle-btn" 
+                    [class.active]="selectedPeriod === 'MTD'" 
+                    (click)="setPeriod('MTD')"
+                    title="Month to Date">
+              MTD
+            </button>
+            <button type="button" 
+                    class="period-toggle-btn" 
+                    [class.active]="selectedPeriod === 'QTD'" 
+                    (click)="setPeriod('QTD')"
+                    title="Quarter to Date">
+              QTD
+            </button>
+            <button type="button" 
+                    class="period-toggle-btn" 
+                    [class.active]="selectedPeriod === 'CFY'" 
+                    (click)="setPeriod('CFY')"
+                    title="Current Financial Year">
+              CFY
+            </button>
+          </div>
+
+          <!-- Interactive Every Lender Dropdown -->
+          <div class="banner-dropdown-wrap">
+            <button type="button" 
+                    class="banner-filter-pill" 
+                    [class.active]="lenderDropdownOpen"
+                    [class.filtered]="!!selectedCompany"
+                    (click)="toggleLenderDropdown($event)"
+                    aria-haspopup="listbox"
+                    [attr.aria-expanded]="lenderDropdownOpen">
+              <span class="pill-label">{{ selectedCompany ? selectedCompany.name : 'Every Lender' }}</span>
+              <button *ngIf="selectedCompany" 
+                      type="button" 
+                      class="pill-clear-btn" 
+                      (click)="clearSelectedCompany($event)" 
+                      title="Reset to Every Lender">✕</button>
+              <svg class="pill-chevron" [class.open]="lenderDropdownOpen" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
 
           <!-- Dropdown Menu -->
           <div class="lender-dropdown-menu" 
@@ -133,9 +159,10 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="banner-cards-grid">
-        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({})">
+    <div class="banner-cards-grid">
+      <div class="dash-card hand-cursor" [routerLink]="getNewsLink({})">
           <div class="dash-card-header">
             <div class="dash-card-value">{{ displayTotal }}</div>
             <div class="card-icon icon-blue">
@@ -207,10 +234,10 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
 
 
 
-      <!-- 3. Risk Types -->
+      <!-- 3. Categories (formerly Risk Types) -->
       <div class="dash-chart-card">
         <div class="dash-chart-header">
-          <h3 class="dash-chart-title">Risk Types</h3>
+          <h3 class="dash-chart-title">Categories</h3>
           <div class="dash-chart-tabs">
             <button class="tab-pill-active">Articles</button>
           </div>
@@ -277,7 +304,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           </div>
         </div>
         <div class="dash-lenders-list" style="display: grid; grid-template-columns: 1fr; gap: 4px 20px;">
-          <div *ngFor="let item of stats?.topCompanies" 
+          <div *ngFor="let item of displayTopCompanies" 
                class="dash-bar-row hand-cursor" 
                [class.active-lender-bar]="isSelectedLender(item._id)"
                (click)="onLenderRowClick(item._id)"
@@ -292,7 +319,6 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           </div>
         </div>
       </div>
-
     </div>
   `,
   styles: [
@@ -303,6 +329,37 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
         flex: 1;
       }
       .hand-cursor { cursor: pointer; }
+      .period-toggle-group {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 20px;
+        padding: 3px;
+        gap: 3px;
+      }
+      .period-toggle-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 3px 12px;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        white-space: nowrap;
+      }
+      .period-toggle-btn:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .period-toggle-btn.active {
+        background: #ffffff;
+        color: #633414;
+        font-weight: 800;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
     `
   ]
 })
@@ -337,24 +394,57 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.getUserProfile();
   }
 
-  get displayTitle(): string {
-    return this.selectedCompany ? this.selectedCompany.name : 'Every Lender';
+  selectedPeriod: 'MTD' | 'QTD' | 'CFY' = 'MTD';
+
+  getPeriodStartDate(period: 'MTD' | 'QTD' | 'CFY'): Date {
+    const now = new Date();
+    if (period === 'MTD') {
+      return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    }
+    if (period === 'QTD') {
+      const qMonth = Math.floor(now.getMonth() / 3) * 3;
+      return new Date(now.getFullYear(), qMonth, 1, 0, 0, 0, 0);
+    }
+    if (period === 'CFY') {
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      return new Date(fyYear, 3, 1, 0, 0, 0, 0);
+    }
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   }
 
-  get totalArticlesCount(): number {
-    return this.stats?.total || this.allArticles.length || 0;
+  get periodArticles(): NewsArticle[] {
+    const startDate = this.getPeriodStartDate(this.selectedPeriod);
+    const filtered = this.allArticles.filter((a) => {
+      if (!a.publishedAt) return true;
+      return new Date(a.publishedAt) >= startDate;
+    });
+    return filtered.length > 0 ? filtered : this.allArticles;
   }
 
   get filteredArticles(): NewsArticle[] {
-    if (!this.selectedCompany) return this.allArticles;
-    return this.allArticles.filter((a) => this.matchesCompany(a, this.selectedCompany!));
+    const base = this.periodArticles;
+    if (!this.selectedCompany) return base;
+    return base.filter((a) => this.matchesCompany(a, this.selectedCompany!));
+  }
+
+  get totalArticlesCount(): number {
+    return this.periodArticles.length;
   }
 
   get displayTotal(): number {
-    if (this.selectedCompany) {
-      return this.filteredArticles.length;
-    }
-    return this.stats?.total ?? this.allArticles.length ?? 0;
+    return this.filteredArticles.length;
+  }
+
+  setPeriod(p: 'MTD' | 'QTD' | 'CFY') {
+    this.selectedPeriod = p;
+    this.api.newsStats(this.selectedPeriod).subscribe({
+      next: (s) => (this.stats = s),
+      error: () => { }
+    });
+  }
+
+  get displayTitle(): string {
+    return this.selectedCompany ? this.selectedCompany.name : 'Every Lender';
   }
 
   get displayCritical(): number {
@@ -453,6 +543,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.selectedCompany) {
       p['company'] = this.selectedCompany.name;
     }
+    if (this.selectedPeriod) {
+      p['period'] = this.selectedPeriod;
+    }
     return Object.keys(p).length ? ['/news', p] : ['/news'];
   }
 
@@ -492,8 +585,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getCompanyArticleCount(c: Company): number {
-    if (this.allArticles.length) {
-      return this.allArticles.filter((a) => this.matchesCompany(a, c)).length;
+    if (this.filteredArticles.length || this.periodArticles.length) {
+      return this.periodArticles.filter((a) => this.matchesCompany(a, c)).length;
     }
     const item = this.stats?.topCompanies?.find((tc) =>
       tc._id.toLowerCase() === c.name.toLowerCase() || tc.name?.toLowerCase() === c.name.toLowerCase()
@@ -522,7 +615,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.api.newsStats().subscribe((s) => (this.stats = s));
+    this.selectedPeriod = 'MTD';
+    this.api.newsStats(this.selectedPeriod).subscribe((s) => (this.stats = s));
     this.api.listCompanies().subscribe((comps) => {
       this.companies = (comps || []).sort((a, b) => a.name.localeCompare(b.name));
     });
@@ -577,38 +671,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getCount(level: string): number {
-    if (!this.stats) return 0;
-    const m = this.stats.byImpact.find((b) => b._id === level);
-    return m ? m.count : 0;
+    return this.displayImpactCount(level);
   }
 
   displayImpactCount(level: string): number {
-    if (this.selectedCompany) {
-      return this.filteredArticles.filter((a) => this.getArticleImpact(a) === level).length;
-    }
-    return this.getCount(level);
+    return this.filteredArticles.filter((a) => this.getArticleImpact(a) === level).length;
   }
 
   displayRiskCount(typeId: string): number {
-    if (this.selectedCompany) {
-       return this.filteredArticles.filter(a => {
-         const t = a.userOverride?.riskType || a.classification?.riskType || 'none';
-         return t.toLowerCase() === typeId.toLowerCase();
-       }).length;
+    return this.filteredArticles.filter((a) => {
+      const t = a.userOverride?.riskType || a.classification?.riskType || 'none';
+      return t.toLowerCase() === typeId.toLowerCase();
+    }).length;
+  }
+
+  get displayTopCompanies(): { _id: string; name: string; count: number }[] {
+    const counts: Record<string, number> = {};
+    const articles = this.filteredArticles;
+    if (articles && articles.length > 0) {
+      articles.forEach((a) => {
+        const name = a.companyName || (typeof a.company === 'object' ? (a.company as Company)?.name : '') || '';
+        if (name) {
+          counts[name] = (counts[name] || 0) + 1;
+        }
+      });
+      const res = Object.keys(counts)
+        .map((k) => ({ _id: k, name: k, count: counts[k] }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+      if (res.length > 0) return res;
     }
-    const match = this.stats?.byRisk?.find(r => r._id.toLowerCase() === typeId.toLowerCase());
-    return match ? match.count : 0;
+    return this.stats?.topCompanies || [];
   }
 
   barWidth(count: number): number {
-    if (!this.stats || !this.stats.total) return 0;
-    const max = Math.max(...this.stats.byImpact.map((b) => b.count), 1);
+    if (!this.displayTotal) return 0;
+    const levels = ['Low', 'Medium', 'High', 'Critical'];
+    const max = Math.max(...levels.map((lvl) => this.displayImpactCount(lvl)), 1);
     return (count / max) * 100;
   }
 
   barWidthTopCompany(count: number): number {
-    if (!this.stats || !this.stats.topCompanies.length) return 0;
-    const max = Math.max(...this.stats.topCompanies.map((b) => b.count), 1);
+    const list = this.displayTopCompanies;
+    if (!list || !list.length) return 0;
+    const max = Math.max(...list.map((b) => b.count), 1);
     return (count / max) * 100;
   }
 
@@ -656,7 +762,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (maxRaw <= 50) return { niceMax: 50, ticks: [50, 40, 30, 20, 10, 0] };
     if (maxRaw <= 80) return { niceMax: 80, ticks: [80, 60, 40, 20, 0] };
     if (maxRaw <= 100) return { niceMax: 100, ticks: [100, 75, 50, 25, 0] };
-    
+
     const digits = Math.floor(Math.log10(maxRaw));
     const power = Math.pow(10, digits);
     const fraction = maxRaw / power;
@@ -665,11 +771,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     else if (fraction <= 2) niceFraction = 2;
     else if (fraction <= 5) niceFraction = 5;
     else niceFraction = 10;
-    
+
     let niceMax = niceFraction * power;
     if (niceMax < maxRaw) niceMax = Math.ceil(maxRaw / power) * power;
-    
-    return { niceMax, ticks: [niceMax, niceMax*0.75, niceMax*0.5, niceMax*0.25, 0] };
+
+    return { niceMax, ticks: [niceMax, niceMax * 0.75, niceMax * 0.5, niceMax * 0.25, 0] };
   }
 
   get impactAxis() {
@@ -683,14 +789,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get maxRiskCount(): number {
     let data = [];
     if (this.selectedCompany) {
-       const counts: Record<string, number> = {};
-       this.filteredArticles.forEach(a => {
-         const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
-         counts[type] = (counts[type] || 0) + 1;
-       });
-       data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
+      const counts: Record<string, number> = {};
+      this.filteredArticles.forEach(a => {
+        const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
+        counts[type] = (counts[type] || 0) + 1;
+      });
+      data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
     } else {
-       data = this.stats?.byRisk || [];
+      data = this.stats?.byRisk || [];
     }
     return Math.max(...data.map(d => d.count), 1);
   }
@@ -698,34 +804,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getRiskChartData() {
     let data = [];
     if (this.selectedCompany) {
-       const counts: Record<string, number> = {};
-       this.filteredArticles.forEach(a => {
-         const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
-         counts[type] = (counts[type] || 0) + 1;
-       });
-       data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
+      const counts: Record<string, number> = {};
+      this.filteredArticles.forEach(a => {
+        const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
+        counts[type] = (counts[type] || 0) + 1;
+      });
+      data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
     } else {
-       data = this.stats?.byRisk || [];
+      data = this.stats?.byRisk || [];
     }
 
     if (!data.length) return [];
-    
+
     // sort by count descending and take top 4
-    data = data.slice().sort((a,b) => b.count - a.count).slice(0, 4);
+    data = data.slice().sort((a, b) => b.count - a.count).slice(0, 4);
 
     const total = this.displayTotal || 1;
     const niceMax = this.riskAxis.niceMax;
-    
+
     return data.map((d, i) => {
       const percent = this.displayTotal > 0 ? Math.round((d.count / total) * 100) : 0;
       const barH = d.count > 0 ? Math.max(Math.round((d.count / niceMax) * 75), 2) : 0;
-      
+
       const totalWidth = 400;
       const spacing = totalWidth / Math.max(1, data.length);
-      const x = 45 + (spacing / 2) + (i * spacing) - 22; 
-      
+      const x = 45 + (spacing / 2) + (i * spacing) - 22;
+
       const y = 100 - barH;
-      
+
       return {
         id: d._id || 'none',
         count: d.count,

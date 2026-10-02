@@ -16,6 +16,7 @@ import {
   CarouselConfig,
   TenantAppearanceConfig,
   UserAppearancePreferences,
+  UserAppearance,
   THEME_PRESETS,
   resolveEffectiveAppearance
 } from './appearance.models';
@@ -84,6 +85,11 @@ export const DEFAULT_APPEARANCE_STATE: AppearanceState = {
     applicationName: 'Lender News',
     appName: 'Lender News',
     logoUrl: DEFAULT_LOGO,
+    loginLogo: DEFAULT_LOGO,
+    sidebarLogo: DEFAULT_LOGO,
+    favicon: '',
+    faviconUrl: '',
+    termsPrivacyText: 'By signing in you agree to our Terms of Service and Privacy Policy.',
     appTitle: 'Lender News',
     appSubtitle: 'IMGC Reviewer Portal',
     logoBorderRadius: 10,
@@ -150,6 +156,16 @@ export class AppearanceService {
   constructor() {
     this.cleanupCorruptedLocalStorage();
     this.initSyncChannel();
+
+    // User-aware theme state: load authenticated user's appearance or wipe on logout
+    this.authService.userChanged$.subscribe((userId) => {
+      if (userId) {
+        this.loadUserAppearance(userId);
+      } else {
+        this.onLogout();
+      }
+    });
+
     if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
       this.applyToDOM(this.savedStateSubject.value);
     } else {
@@ -244,7 +260,9 @@ export class AppearanceService {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (event: StorageEvent) => {
-        if (event.key && event.key.startsWith('lender_news_tenant_')) {
+        if (event.key && (event.key === `appearance:${this.currentUserId}` || event.key === `lender_news_user_${this.currentUserId}_appearance`)) {
+          this.loadUserAppearance(this.currentUserId);
+        } else if (event.key && event.key.startsWith('lender_news_tenant_')) {
           this.refreshFromTenantStorage();
         }
       });
@@ -253,12 +271,21 @@ export class AppearanceService {
 
   private handleSyncMessage(data: any): void {
     if (!data) return;
-    if (data.type === 'BRANDING_UPDATED' && data.tenantId === this.currentTenantId) {
+    // Only synchronize appearance if the update belongs strictly to the CURRENT user
+    if (data.type === 'USER_APPEARANCE_UPDATED' && data.userId === this.currentUserId) {
+      const freshUserAppearance = this.mergeWithDefaults(data.state);
+      this.savedStateSubject.next(freshUserAppearance);
+      this.draftStateSubject.next(this.clone(freshUserAppearance));
+      if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
+        this.applyToDOM(freshUserAppearance);
+      }
+    } else if (data.type === 'BRANDING_UPDATED' && data.tenantId === this.currentTenantId) {
       this.refreshFromTenantStorage(data.branding);
     }
   }
 
   public refreshFromTenantStorage(incomingBranding?: BrandingConfig): void {
+    // When tenant branding updates, update organization branding assets only — NEVER overwrite personal theme colors
     const freshState = this.loadEffectiveState();
     if (incomingBranding) {
       const safeLogo = isCorruptedLogo(incomingBranding.logoUrl) ? DEFAULT_LOGO : incomingBranding.logoUrl;
@@ -270,12 +297,6 @@ export class AppearanceService {
         appName: incomingBranding.appName || incomingBranding.applicationName || freshState.branding.appName,
         appTitle: incomingBranding.appTitle || incomingBranding.applicationName || freshState.branding.appTitle
       };
-      if (incomingBranding.primaryColor) {
-        freshState.colors.primary = incomingBranding.primaryColor;
-      }
-      if (incomingBranding.secondaryColor) {
-        freshState.colors.secondary = incomingBranding.secondaryColor;
-      }
     }
     this.savedStateSubject.next(freshState);
     this.applyToDOM(freshState);
@@ -448,52 +469,21 @@ export class AppearanceService {
 
   /**
    * Apply Changes:
-   * 1. Validates configuration.
-   * 2. If Admin: persists Tenant Branding to tenant storage & backend API, and broadcasts update.
-   * 3. Persists User Personal Preferences (Dark/Light mode, typography scale, language, density).
-   * 4. Resolves effective appearance and updates DOM.
+   * 1. Persists appearance strictly for CURRENT authenticated user ID (never shared/global).
+   * 2. Namespaces localStorage key: appearance:${currentUser.id}
+   * 3. Syncs with backend API PUT /api/appearance (authenticated session).
+   * 4. Updates live DOM tokens and in-memory saved state for current user.
    * 5. Closes studio and shows confirmation toast.
    */
   applyChanges(): void {
     const draft = this.clone(this.draftStateSubject.value);
-    const tenantId = this.currentTenantId;
     const userId = this.currentUserId;
     const isAdmin = this.canManageBranding;
 
-    // 1. If Admin: Persist Tenant Branding & notify
-    if (isAdmin) {
-      const versionedBranding: BrandingConfig = {
-        ...draft.branding,
-        version: Date.now()
-      };
+    // 1. Persist user-scoped configuration to namespaced localStorage: appearance:${userId}
+    this.saveUserAppearance(userId, draft);
 
-      const tenantConfig: TenantAppearanceConfig = {
-        tenantId,
-        branding: versionedBranding,
-        themePresetId: draft.theme.presetId,
-        primaryColor: draft.colors.primary,
-        secondaryColor: draft.colors.secondary
-      };
-
-      this.saveTenantConfig(tenantId, tenantConfig);
-
-      // Invoke backend security endpoint for server persistence
-      this.http.put('/api/appearance/branding', versionedBranding).subscribe({
-        next: () => {},
-        error: (err) => console.warn('Appearance branding API sync error', err)
-      });
-
-      // Broadcast branding update to other active sessions/tabs
-      if (this.syncChannel) {
-        this.syncChannel.postMessage({
-          type: 'BRANDING_UPDATED',
-          tenantId,
-          branding: versionedBranding
-        });
-      }
-    }
-
-    // 2. Persist User Preferences (strictly personal settings)
+    // Also persist personal preferences for compatibility
     const userPrefs: UserAppearancePreferences = {
       userId,
       mode: draft.theme.mode,
@@ -505,12 +495,42 @@ export class AppearanceService {
     };
     this.saveUserPreferences(userId, userPrefs);
 
-    // 3. Resolve Effective State (System Defaults -> Tenant Branding -> User Preferences)
-    const effective = this.loadEffectiveState();
-    this.savedStateSubject.next(effective);
-    this.applyToDOM(effective);
+    // 2. Invoke server /api/appearance endpoint (determined by authenticated session)
+    this.http.put('/api/appearance', draft).subscribe({
+      next: () => {},
+      error: (err) => console.warn('User appearance API sync error', err)
+    });
 
-    // 4. Close Studio
+    // 3. If Admin updated branding properties, persist tenant branding
+    if (isAdmin) {
+      const versionedBranding: BrandingConfig = {
+        ...draft.branding,
+        version: Date.now()
+      };
+      this.saveTenantConfig(this.currentTenantId, {
+        tenantId: this.currentTenantId,
+        branding: versionedBranding
+      });
+      this.http.put('/api/appearance/branding', versionedBranding).subscribe({
+        next: () => {},
+        error: () => {}
+      });
+    }
+
+    // 4. Update in-memory state & apply directly to DOM for current user
+    this.savedStateSubject.next(draft);
+    this.applyToDOM(draft);
+
+    // 5. Broadcast appearance update only to tabs of the SAME user
+    if (this.syncChannel) {
+      this.syncChannel.postMessage({
+        type: 'USER_APPEARANCE_UPDATED',
+        userId,
+        state: draft
+      });
+    }
+
+    // 6. Close Studio & show confirmation toast
     this.isOpenSubject.next(false);
     this.showToast('Appearance changes applied successfully.');
   }
@@ -566,21 +586,148 @@ export class AppearanceService {
   }
 
   /**
-   * Loads the effective state by applying hierarchy:
-   * System Defaults -> Tenant/Admin Configuration -> User Preferences
+   * Loads the appearance configuration belonging to the currently authenticated user.
    */
   public loadEffectiveState(): AppearanceState {
-    const tenantId = this.currentTenantId;
     const userId = this.currentUserId;
+    return this.getUserAppearance(userId);
+  }
 
-    const tenantConfig = this.getTenantConfig(tenantId);
-    const userPrefs = this.getUserPreferences(userId);
+  /**
+   * Loads appearance configuration for a specific user ID.
+   * Priority: appearance:${userId} -> lender_news_user_${userId}_appearance -> defaults
+   */
+  public getUserAppearance(userId: string): AppearanceState {
+    if (typeof localStorage !== 'undefined' && userId) {
+      // 1. Primary namespaced key: appearance:${userId}
+      const primaryKey = `appearance:${userId}`;
+      const stored = localStorage.getItem(primaryKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          return this.mergeWithDefaults(parsed);
+        } catch (e) {
+          console.warn('Failed to parse ' + primaryKey, e);
+        }
+      }
 
-    const effective = resolveEffectiveAppearance(DEFAULT_APPEARANCE_STATE, tenantConfig, userPrefs);
-    if (isCorruptedLogo(effective.branding.logoUrl)) {
-      effective.branding.logoUrl = DEFAULT_LOGO;
+      // 2. Alternative user key: lender_news_user_${userId}_appearance
+      const altKey = `lender_news_user_${userId}_appearance`;
+      const storedAlt = localStorage.getItem(altKey);
+      if (storedAlt) {
+        try {
+          const parsed = JSON.parse(storedAlt);
+          return this.mergeWithDefaults(parsed);
+        } catch (e) {}
+      }
+
+      // 3. User personal preferences
+      const prefs = this.getUserPreferences(userId);
+      if (prefs) {
+        const tenantConfig = this.getTenantConfig(this.currentTenantId);
+        return resolveEffectiveAppearance(DEFAULT_APPEARANCE_STATE, tenantConfig, prefs);
+      }
     }
-    return effective;
+
+    // Default clean configuration (with organization branding logo/title if available)
+    const tenantConfig = this.getTenantConfig(this.currentTenantId);
+    if (tenantConfig && tenantConfig.branding) {
+      const def = this.clone(DEFAULT_APPEARANCE_STATE);
+      def.branding = {
+        ...def.branding,
+        ...tenantConfig.branding,
+        applicationName: tenantConfig.branding.applicationName || tenantConfig.branding.appName || def.branding.applicationName,
+        appName: tenantConfig.branding.appName || tenantConfig.branding.applicationName || def.branding.appName,
+        logoUrl: isCorruptedLogo(tenantConfig.branding.logoUrl) ? DEFAULT_LOGO : (tenantConfig.branding.logoUrl || def.branding.logoUrl),
+        loginLogo: isCorruptedLogo(tenantConfig.branding.loginLogo) ? DEFAULT_LOGO : (tenantConfig.branding.loginLogo || def.branding.loginLogo),
+        sidebarLogo: isCorruptedLogo(tenantConfig.branding.sidebarLogo) ? DEFAULT_LOGO : (tenantConfig.branding.sidebarLogo || def.branding.sidebarLogo)
+      };
+      return def;
+    }
+
+    return this.clone(DEFAULT_APPEARANCE_STATE);
+  }
+
+  public saveUserAppearance(userId: string, state: AppearanceState): void {
+    if (typeof localStorage === 'undefined' || !userId) return;
+    try {
+      const userAppearance: UserAppearance = {
+        userId,
+        theme: state.theme,
+        colors: state.colors,
+        bg: state.bg,
+        display: state.display,
+        branding: state.branding,
+        carousel: state.carousel,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(`appearance:${userId}`, JSON.stringify(userAppearance));
+      localStorage.setItem(`lender_news_user_${userId}_appearance`, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Failed to save appearance for user ' + userId, e);
+    }
+  }
+
+  public mergeWithDefaults(raw: any): AppearanceState {
+    const def = this.clone(DEFAULT_APPEARANCE_STATE);
+    if (!raw) return def;
+
+    return {
+      theme: { ...def.theme, ...(raw.theme || {}) },
+      colors: { ...def.colors, ...(raw.colors || {}) },
+      bg: { ...def.bg, ...(raw.bg || {}) },
+      display: { ...def.display, ...(raw.display || {}) },
+      branding: {
+        ...def.branding,
+        ...(raw.branding || {}),
+        applicationName: raw.branding?.applicationName || raw.branding?.appName || def.branding.applicationName,
+        appName: raw.branding?.appName || raw.branding?.applicationName || def.branding.appName,
+        termsPrivacyText: raw.branding?.termsPrivacyText !== undefined ? raw.branding.termsPrivacyText : def.branding.termsPrivacyText,
+        logoUrl: isCorruptedLogo(raw.branding?.logoUrl) ? DEFAULT_LOGO : (raw.branding?.logoUrl || def.branding.logoUrl),
+        loginLogo: isCorruptedLogo(raw.branding?.loginLogo) ? DEFAULT_LOGO : (raw.branding?.loginLogo || def.branding.loginLogo),
+        sidebarLogo: isCorruptedLogo(raw.branding?.sidebarLogo) ? DEFAULT_LOGO : (raw.branding?.sidebarLogo || def.branding.sidebarLogo),
+        favicon: raw.branding?.favicon || raw.branding?.faviconUrl || def.branding.favicon,
+        faviconUrl: raw.branding?.faviconUrl || raw.branding?.favicon || def.branding.faviconUrl
+      },
+      carousel: { ...def.carousel, ...(raw.carousel || {}) }
+    };
+  }
+
+  public loadUserAppearance(userId: string): void {
+    const userState = this.getUserAppearance(userId);
+    this.savedStateSubject.next(userState);
+    this.draftStateSubject.next(this.clone(userState));
+    if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
+      this.applyToDOM(userState);
+    } else {
+      this.clearFromDOM();
+    }
+
+    // Server-side user appearance sync via GET /api/appearance
+    this.http.get<any>('/api/appearance').subscribe({
+      next: (res) => {
+        if (res && (res.theme || res.colors)) {
+          const merged = this.mergeWithDefaults(res);
+          if (this.authService.getUserId() === userId) {
+            this.savedStateSubject.next(merged);
+            this.draftStateSubject.next(this.clone(merged));
+            if (this.authService.isAuthenticated() && !this.isAuthRoute()) {
+              this.applyToDOM(merged);
+            }
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  public onLogout(): void {
+    // Clear user state from active memory & draft
+    const def = this.clone(DEFAULT_APPEARANCE_STATE);
+    this.savedStateSubject.next(def);
+    this.draftStateSubject.next(def);
+    this.isOpenSubject.next(false);
+    this.clearFromDOM();
   }
 
   private getTenantConfig(tenantId: string): TenantAppearanceConfig | null {
@@ -715,15 +862,18 @@ export class AppearanceService {
       document.title = `${title} | Risk & News Portal`;
     }
 
-    // Dynamic browser favicon update (ONLY for authenticated app)
-    if (state.branding.faviconUrl) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    // Dynamic browser favicon update (persisted across the entire application)
+    const favicon = state.branding.favicon || state.branding.faviconUrl;
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    if (favicon) {
       if (!link) {
         link = document.createElement('link');
-        link.rel = 'shortcut icon';
+        link.rel = 'icon';
         document.head.appendChild(link);
       }
-      link.href = state.branding.faviconUrl;
+      link.href = favicon;
+    } else if (link) {
+      link.href = 'data:image/x-icon;,';
     }
 
     // Typography Scale & Language Preference
