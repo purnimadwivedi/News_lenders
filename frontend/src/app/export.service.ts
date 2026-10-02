@@ -20,163 +20,149 @@ export class ExportService {
   }
 
   /**
-   * Export Digest/Alert data to Excel (.xls XML / CSV spreadsheet)
-   * Containing: Count, Title, Impact, Category, Name, Publisher
+   * Export Digest/Alert data as a downloaded PDF file with clickable article titles.
+   * Containing: Count, Title, Impact, Category, Name, Publisher, Published date
    */
-  exportDigestToExcel(articles: NewsArticle[], title = 'DIGEST / ALERT SUMMARY', filename?: string) {
+  async exportDigestToPdf(articles: NewsArticle[], title = 'Digest / Alert Summary', filename?: string) {
     if (!articles || !articles.length) return;
 
-    const totalCount = articles.length;
-    const name = filename || `digest_export_${Date.now()}.csv`;
+    // Loaded on demand so the PDF libraries stay out of the main bundle.
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
 
-    const headers = ['#', 'Title', 'Impact', 'Category', 'Name', 'Publisher'];
+    const generatedAt = new Date();
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 32;
+
     const rows = articles.map((a, i) => {
       const eff = this.effectiveClassification(a);
-      const entityName = a.companyName || (typeof a.company === 'object' ? (a.company as any)?.name : '') || 'IMGC';
-      const publisher = a.source || 'General Press';
-
-      return [
-        (i + 1).toString(),
-        `"${(a.title || '').replace(/"/g, '""')}"`,
-        `"${eff.impactLevel}"`,
-        `"${eff.riskType}"`,
-        `"${entityName.replace(/"/g, '""')}"`,
-        `"${publisher.replace(/"/g, '""')}"`
-      ].join(',');
+      return {
+        url: /^https?:\/\//i.test(a.url || '') ? a.url : '',
+        cells: [
+          String(i + 1),
+          pdfText(a.title || '(untitled)'),
+          eff.impactLevel,
+          capitalize(eff.riskType),
+          pdfText(a.companyName || (typeof a.company === 'object' ? (a.company as any)?.name : '') || 'IMGC'),
+          pdfText(a.source || 'General Press'),
+          a.publishedAt ? formatDate(new Date(a.publishedAt)) : ''
+        ]
+      };
     });
 
-    const csvContent = [
-      `"${title}"`,
-      `"Count: ${totalCount}"`,
-      '',
-      headers.join(','),
-      ...rows
-    ].join('\r\n');
+    // Split rows at page breaks get their own row index, so look the URL up by the row's data.
+    const urlByRow = new Map<unknown, string>(rows.map((r) => [r.cells, r.url]));
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
+    // Header: title, generation time and per-impact counts.
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, pageWidth, 70, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text(title, margin, 32);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(203, 213, 225);
+    doc.text(`Generated ${formatDate(generatedAt)}, ${formatTime(generatedAt)}  |  ${articles.length} articles`, margin, 52);
 
-  /**
-   * Export Digest/Alert data to PDF (via styled print document)
-   * Containing: Count, Title, Impact, Category, Name, Publisher
-   */
-  exportDigestToPdf(articles: NewsArticle[], title = 'DIGEST / ALERT SUMMARY') {
-    if (!articles || !articles.length) return;
-
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      alert('Pop-up blocked. Please allow pop-ups to generate PDF.');
-      return;
+    let x = pageWidth - margin;
+    for (const level of [...IMPACT_LEVELS].reverse()) {
+      const count = rows.filter((r) => r.cells[2] === level).length;
+      const label = `${level}: ${count}`;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      const w = doc.getTextWidth(label) + 16;
+      x -= w;
+      const [bg, fg] = IMPACT_COLORS[level];
+      doc.setFillColor(...bg);
+      doc.roundedRect(x, 30, w, 18, 9, 9, 'F');
+      doc.setTextColor(...fg);
+      doc.text(label, x + 8, 42);
+      x -= 6;
     }
 
-    const rowsHtml = articles.map((a, i) => {
-      const eff = this.effectiveClassification(a);
-      const entityName = a.companyName || (typeof a.company === 'object' ? (a.company as any)?.name : '') || 'IMGC';
-      const publisher = a.source || 'General Press';
-      const impact = eff.impactLevel || 'Low';
+    autoTable(doc, {
+      startY: 86,
+      margin: { left: margin, right: margin, bottom: 36 },
+      head: [['#', 'Title', 'Impact', 'Category', 'Lender', 'Publisher', 'Published']],
+      body: rows.map((r) => r.cells),
+      theme: 'grid',
+      rowPageBreak: 'avoid',
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 5, lineColor: [226, 232, 240], lineWidth: 0.5, textColor: [30, 41, 59], valign: 'middle' },
+      headStyles: { fillColor: [248, 250, 252], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 26, halign: 'center', textColor: [148, 163, 184] },
+        1: { cellWidth: 'auto', textColor: [29, 78, 216], fontStyle: 'bold' },
+        2: { cellWidth: 60, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 72 },
+        4: { cellWidth: 110, fontStyle: 'bold' },
+        5: { cellWidth: 100, textColor: [100, 116, 139] },
+        6: { cellWidth: 68 }
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2) {
+          const [bg, fg] = IMPACT_COLORS[String(data.cell.raw)] || IMPACT_COLORS['Low'];
+          data.cell.styles.fillColor = bg;
+          data.cell.styles.textColor = fg;
+        }
+        if (data.section === 'body' && data.column.index === 1 && !urlByRow.get(data.row.raw)) {
+          data.cell.styles.textColor = [30, 41, 59];
+        }
+      },
+      // Make the whole title cell a clickable link to the article.
+      didDrawCell: (data) => {
+        if (data.section !== 'body' || data.column.index !== 1) return;
+        const url = urlByRow.get(data.row.raw);
+        if (url) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });
+      },
+      didDrawPage: () => {
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`${title}  |  Page ${doc.getNumberOfPages()}`, pageWidth - margin, pageHeight - 16, { align: 'right' });
+      }
+    });
 
-      return `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: center;">${i + 1}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 500;">
-            <a href="${a.url}" target="_blank" style="color: #1d4ed8; text-decoration: none;">${a.title}</a>
-          </td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">
-            <span class="badge ${impact}">${impact}</span>
-          </td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-transform: capitalize;">${eff.riskType}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 600;">${entityName}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">${publisher}</td>
-        </tr>
-      `;
-    }).join('');
-
-    printWindow.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${title}</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            padding: 30px;
-            color: #1e293b;
-            margin: 0;
-          }
-          .header-box {
-            background: #1e293b;
-            color: #ffffff;
-            padding: 20px 24px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-          }
-          h1 { margin: 0; font-size: 22px; font-weight: 700; }
-          .count-text { font-size: 16px; font-weight: 700; color: #f97316; margin-top: 8px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th {
-            text-align: left;
-            padding: 12px 10px;
-            background: #f8fafc;
-            color: #475569;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            border-bottom: 2px solid #cbd5e1;
-          }
-          .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-          }
-          .badge.Critical { background: #fee2e2; color: #b91c1c; }
-          .badge.High { background: #ffedd5; color: #c2410c; }
-          .badge.Medium { background: #fef9c3; color: #854d0e; }
-          .badge.Low { background: #dcfce7; color: #15803d; }
-          @media print {
-            body { padding: 0; }
-            .no-print { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header-box">
-          <h1>${title}</h1>
-          <div class="count-text">Count: ${articles.length}</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 40px; text-align: center;">#</th>
-              <th>Title</th>
-              <th style="width: 80px;">Impact</th>
-              <th style="width: 110px;">Category</th>
-              <th style="width: 140px;">Name</th>
-              <th style="width: 120px;">Publisher</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          };
-        </script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    doc.save(filename || `Digest_Summary_${generatedAt.toISOString().slice(0, 10)}.pdf`);
   }
+}
+
+const IMPACT_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
+
+const IMPACT_COLORS: Record<string, [[number, number, number], [number, number, number]]> = {
+  Critical: [[254, 226, 226], [185, 28, 28]],
+  High: [[255, 237, 213], [194, 65, 12]],
+  Medium: [[254, 249, 195], [133, 77, 14]],
+  Low: [[220, 252, 231], [21, 128, 61]]
+};
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatDate(d: Date): string {
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatTime(d: Date): string {
+  const h = d.getHours() % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${d.getHours() < 12 ? 'AM' : 'PM'}`;
+}
+
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+// The built-in PDF fonts only cover Windows-1252, so map common symbols and drop anything else
+// (otherwise characters like the rupee sign render as garbage).
+const CP1252_EXTRAS = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+function pdfText(s: string): string {
+  return s
+    .replace(/₹\s?/g, 'Rs ')
+    .replace(/[‐‑‒]/g, '-')
+    .replace(/ /g, ' ')
+    .split('')
+    .filter((ch) => ch.charCodeAt(0) <= 0xff || CP1252_EXTRAS.includes(ch))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

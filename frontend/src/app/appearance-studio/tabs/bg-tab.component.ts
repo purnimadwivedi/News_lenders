@@ -176,13 +176,13 @@ import { BgConfig, BgStyle } from '../appearance.models';
     .tab-pane {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 10px;
     }
 
     .setting-section {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 7px;
     }
 
     .section-title {
@@ -202,7 +202,7 @@ import { BgConfig, BgStyle } from '../appearance.models';
     .section-divider {
       height: 1px;
       background: #f1f5f9;
-      margin: 4px 0;
+      margin: 0;
     }
 
     /* Style Pills */
@@ -240,17 +240,17 @@ import { BgConfig, BgStyle } from '../appearance.models';
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 8px 12px;
     }
 
     .setting-card-rows {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 8px 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .setting-row {
@@ -326,7 +326,7 @@ import { BgConfig, BgStyle } from '../appearance.models';
     }
 
     .gradient-card {
-      height: 48px;
+      height: 36px;
       border-radius: 6px;
       border: 1.5px solid #e2e8f0;
       display: flex;
@@ -407,7 +407,7 @@ import { BgConfig, BgStyle } from '../appearance.models';
       display: flex;
       align-items: center;
       gap: 8px;
-      padding-top: 6px;
+      padding-top: 2px;
       border-top: 1px dashed #f1f5f9;
     }
 

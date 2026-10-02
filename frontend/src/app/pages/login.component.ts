@@ -76,8 +76,8 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
         <!-- Hero Headline & Subtitle -->
         <div class="hero-content">
           <h1 class="hero-title">
-            Real-time news <span class="highlight">of</span><br>
-            <span class="highlight">every lender.</span>
+            Real-time news<br>
+            <span class="highlight">of every lender.</span>
           </h1>
           <p class="hero-subtitle">
             Track, monitor, and analyze market news, regulatory updates, and risk signals with complete visibility, all in one place.
@@ -229,15 +229,15 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
     .brand-bar {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
     }
 
     .logo-box {
       background: #ffffff;
-      border-radius: 12px;
-      padding: 5px;
-      width: 48px;
-      height: 48px;
+      border-radius: 18px;
+      padding: 8px;
+      width: 76px;
+      height: 76px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -254,10 +254,11 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
     }
 
     .portal-title {
-      font-size: 1.15rem;
-      font-weight: 700;
+      font-size: 2rem;
+      font-weight: 800;
       color: #0f172a;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
     }
 
     .hero-content {
@@ -558,6 +559,15 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
       }
       .hero-title {
         font-size: 2.5rem;
+      }
+      .logo-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        padding: 6px;
+      }
+      .portal-title {
+        font-size: 1.6rem;
       }
       .login-right {
         height: auto;

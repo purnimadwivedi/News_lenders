@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { ExportService } from '../export.service';
-import { RunLog } from '../models';
+import { NewsArticle, RunLog } from '../models';
 
 @Component({
   selector: 'app-runs',
@@ -12,19 +12,13 @@ import { RunLog } from '../models';
   template: `
     <div class="page-header-row" style="justify-content: flex-end;">
       <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="pill-btn" (click)="exportDigestExcel()" [disabled]="busy" title="Export Digest in Excel format">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Export Digest (Excel)
-        </button>
-        <button class="pill-btn" (click)="exportDigestPdf()" [disabled]="busy" title="Export Digest in PDF format">
+        <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy">Fetch + classify now</button>
+        <button class="pill-btn" (click)="exportDigestPdf()" [disabled]="busy || exportingPdf" title="Export Digest in PDF format">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          Export Digest (PDF)
+          {{ exportingPdf ? 'Preparing PDF…' : 'Export Digest (PDF)' }}
         </button>
-        <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy">Fetch + classify now</button>
         <button (click)="triggerDigest()" [disabled]="busy">Send digest now</button>
       </div>
     </div>
@@ -226,21 +220,37 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
 
   private exportService = inject(ExportService);
 
-  exportDigestExcel() {
-    this.api.listNews({ limit: 100 }).subscribe({
-      next: (res) => {
-        this.exportService.exportDigestToExcel(res.items);
-      },
-      error: () => alert('Failed to fetch articles for export')
+  exportingPdf = false;
+
+  exportDigestPdf() {
+    if (this.exportingPdf) return;
+    this.exportingPdf = true;
+    this.fetchAllNews([], (items) => {
+      this.exportService.exportDigestToPdf(items)
+        .catch((err) => {
+          console.error('PDF export failed', err);
+          alert('Failed to generate the PDF');
+        })
+        .finally(() => (this.exportingPdf = false));
     });
   }
 
-  exportDigestPdf() {
-    this.api.listNews({ limit: 100 }).subscribe({
+  // The API caps a page at 200, so page through until every article is loaded.
+  private fetchAllNews(acc: NewsArticle[], done: (items: NewsArticle[]) => void) {
+    this.api.listNews({ limit: 200, skip: acc.length }).subscribe({
       next: (res) => {
-        this.exportService.exportDigestToPdf(res.items);
+        const page = res.items || [];
+        const items = [...acc, ...page];
+        if (page.length && items.length < res.total) {
+          this.fetchAllNews(items, done);
+        } else {
+          done(items);
+        }
       },
-      error: () => alert('Failed to fetch articles for export')
+      error: () => {
+        this.exportingPdf = false;
+        alert('Failed to fetch articles for export');
+      }
     });
   }
 

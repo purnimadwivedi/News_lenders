@@ -288,14 +288,14 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
            [style.--preview-scale]="fontScale"
            [style.--preview-primary]="primaryColor"
            [style.--preview-secondary]="secondaryColor"
-           [style.--preview-bg]="isDark ? '#050b18' : (draft.bg.appBg || '#f8fafc')"
-           [style.--preview-surface]="isDark ? '#0b1220' : (draft.bg.surfaceBg || '#ffffff')"
+           [style.--preview-bg]="previewAppBg"
+           [style.--preview-surface]="previewSurface"
            [style.--preview-text]="isDark ? '#f8fafc' : '#0f172a'"
            [style.--preview-muted]="isDark ? '#94a3b8' : '#64748b'"
            [style.--preview-border]="isDark ? '#243247' : '#e2e8f0'"
            [style.--preview-sidebar]="isDark ? '#0b1220' : (draft.bg.sidebarBg || '#1e293b')"
            [style.--preview-radius]="radiusPx"
-           [style.background]="isDark ? '#050b18' : (draft.bg.appBg || '#f8fafc')"
+           [style.background]="previewAppBg"
            [style.color]="isDark ? '#f8fafc' : '#0f172a'">
 
         <!-- Real Application Sidebar Component -->
@@ -309,7 +309,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                  [style.border-radius.px]="draft.branding.logoBorderRadius || 8"
                  alt="Logo" />
             <div class="real-brand-titles">
-              <span class="real-brand-name">{{ draft.branding.applicationName || draft.branding.appName || draft.branding.appTitle || 'Lender News' }}</span>
+              <span class="real-brand-name">{{ draft.branding.applicationName || draft.branding.appName || draft.branding.appTitle || 'News Radar' }}</span>
               <span class="real-brand-sub">{{ draft.branding.appSubtitle || 'IMGC Reviewer Portal' }}</span>
             </div>
           </div>
@@ -378,7 +378,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
         </aside>
 
         <!-- Main Real Application Area -->
-        <main class="real-main-wrap" [style.background]="isDark ? '#050b18' : (draft.bg.appBg || '#f8fafc')">
+        <main class="real-main-wrap" [style.background]="previewAppBg">
           
           <!-- Real Application Header Bar -->
           <header class="real-app-header" 
@@ -420,7 +420,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
           <div class="real-content-scroll" [class.density-compact]="draft.display.density === 'compact'" [class.density-spacious]="draft.display.density === 'spacious'">
             
             <!-- Real Chocolate Banner -->
-            <div class="banner-chocolate real-chocolate" [style.border-radius]="radiusPx">
+            <div class="banner-chocolate real-chocolate" [style.border-radius]="radiusPx" [style.background]="previewBannerBg">
               <div class="banner-top-row">
                 <h3 class="chocolate-title">{{ t.everyLender }}</h3>
                 <div class="pill-filter-mock">
@@ -435,7 +435,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
               <div class="real-stat-grid">
                 
                 <!-- Card 1: Total Articles -->
-                <div class="real-stat-card" [style.border-radius]="radiusPx">
+                <div class="real-stat-card" [style.border-radius]="radiusPx" [style.background]="previewSurface">
                   <div class="stat-card-top">
                     <span class="stat-value" [style.color]="primaryColor">99</span>
                     <div class="stat-icon-wrap icon-blue">
@@ -447,7 +447,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                 </div>
 
                 <!-- Card 2: Critical Impact -->
-                <div class="real-stat-card" [style.border-radius]="radiusPx">
+                <div class="real-stat-card" [style.border-radius]="radiusPx" [style.background]="previewSurface">
                   <div class="stat-card-top">
                     <span class="stat-value" style="color: #ef4444;">0</span>
                     <div class="stat-icon-wrap icon-red">
@@ -459,7 +459,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                 </div>
 
                 <!-- Card 3: High Impact -->
-                <div class="real-stat-card" [style.border-radius]="radiusPx">
+                <div class="real-stat-card" [style.border-radius]="radiusPx" [style.background]="previewSurface">
                   <div class="stat-card-top">
                     <span class="stat-value" style="color: #f37819;">16</span>
                     <div class="stat-icon-wrap icon-orange">
@@ -471,7 +471,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
                 </div>
 
                 <!-- Card 4: Lenders Tracked -->
-                <div class="real-stat-card" [style.border-radius]="radiusPx">
+                <div class="real-stat-card" [style.border-radius]="radiusPx" [style.background]="previewSurface">
                   <div class="stat-card-top">
                     <span class="stat-value" style="color: #06b6d4;">7</span>
                     <div class="stat-icon-wrap icon-cyan">
@@ -492,7 +492,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
               <div class="real-chart-card span-2" 
                    [class.card-shadow]="draft.display.cardStyle === 'shadow'"
                    [class.card-border]="draft.display.cardStyle === 'border'"
-                   [style.background]="isDark ? '#0b1220' : '#ffffff'"
+                   [style.background]="previewSurface"
                    [style.border-color]="isDark ? '#243247' : '#e2e8f0'"
                    [style.border-radius]="radiusPx">
                 <div class="chart-card-header">
@@ -519,7 +519,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
               <div class="real-chart-card" 
                    [class.card-shadow]="draft.display.cardStyle === 'shadow'"
                    [class.card-border]="draft.display.cardStyle === 'border'"
-                   [style.background]="isDark ? '#0b1220' : '#ffffff'"
+                   [style.background]="previewSurface"
                    [style.border-color]="isDark ? '#243247' : '#e2e8f0'"
                    [style.border-radius]="radiusPx">
                 <div class="chart-card-header">
@@ -579,7 +579,7 @@ const PORTAL_TRANSLATIONS: Record<LanguageCode, PortalTranslationMap> = {
               <div class="real-chart-card" 
                    [class.card-shadow]="draft.display.cardStyle === 'shadow'"
                    [class.card-border]="draft.display.cardStyle === 'border'"
-                   [style.background]="isDark ? '#0b1220' : '#ffffff'"
+                   [style.background]="previewSurface"
                    [style.border-color]="isDark ? '#243247' : '#e2e8f0'"
                    [style.border-radius]="radiusPx">
                 <div class="chart-card-header">
@@ -1284,6 +1284,26 @@ export class LivePreviewComponent {
 
   get primaryColor(): string {
     return this.draft.colors.primary || (this.isDark ? '#3b82f6' : '#2563eb');
+  }
+
+  /** Workspace background as the BG tab defines it: solid colour, gradient or uploaded image. */
+  get previewAppBg(): string {
+    if (this.isDark) return '#050b18';
+    const bg = this.draft.bg;
+    if (bg.style === 'gradient' && bg.gradientPreset) return bg.gradientPreset;
+    if (bg.style === 'image' && bg.customImageUrl) {
+      return `url("${bg.customImageUrl.replace(/"/g, '%22')}") center / cover no-repeat`;
+    }
+    return bg.appBg || '#f8fafc';
+  }
+
+  get previewSurface(): string {
+    return this.isDark ? '#0b1220' : (this.draft.bg.surfaceBg || '#ffffff');
+  }
+
+  /** Same derivation as the app banner: a dark shade of the primary colour. */
+  get previewBannerBg(): string {
+    return this.isDark ? '#0b1220' : `color-mix(in srgb, ${this.primaryColor} 35%, #1a0d05)`;
   }
 
   get secondaryColor(): string {

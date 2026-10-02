@@ -74,7 +74,7 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
 
           <!-- Preset Name & Selection Indicator -->
           <div class="preset-footer">
-            <span class="preset-name">{{ p.name }}</span>
+            <span class="preset-name" [title]="p.name">{{ p.name }}</span>
             <span class="preset-check-icon" *ngIf="draft.theme.presetId === p.id">✓</span>
           </div>
         </div>
@@ -85,7 +85,7 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
     .tab-pane {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       transition: color 0.15s ease;
     }
 
@@ -151,7 +151,7 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
     .section-divider {
       height: 1px;
       background: #f1f5f9;
-      margin: 4px 0;
+      margin: 0;
       transition: background 0.15s ease;
     }
 
@@ -168,27 +168,25 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
       font-weight: 600;
     }
 
-    /* Scrollable Presets Grid */
+    /* Compact 3-column grid: all presets fit without an inner scrollbar */
     .presets-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      max-height: 480px;
-      overflow-y: auto;
-      padding-right: 4px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .preset-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 8px 9px;
       cursor: pointer;
       transition: all 0.18s ease;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 7px;
       position: relative;
+      min-width: 0;
     }
 
     .preset-card:focus-visible {
@@ -206,18 +204,18 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
       border: 2px solid var(--color-primary, #2563eb);
       background: #f8faff;
       box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
-      padding: 11px 13px; /* accommodate 2px border */
+      padding: 7px 8px; /* accommodate 2px border */
     }
 
     .swatch-bars {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .bar-line {
       display: block;
-      height: 5px;
+      height: 4px;
       border-radius: 3px;
       width: 100%;
     }
@@ -230,7 +228,7 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
     }
 
     .preset-name {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #0f172a;
       white-space: nowrap;
@@ -239,8 +237,8 @@ import { ColorMode, THEME_PRESETS, ThemePreset } from '../appearance.models';
     }
 
     .preset-check-icon {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: var(--color-primary, #2563eb);
       color: #ffffff;

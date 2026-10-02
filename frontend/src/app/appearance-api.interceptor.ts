@@ -52,12 +52,12 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
       statusText: 'OK',
       body: userAppearance || {
         userId,
-        theme: { mode: 'light', presetId: 'enterprise-blue' },
+        theme: { mode: 'light', presetId: 'imgc-orange' },
         colors: {
-          primary: '#2563EB',
+          primary: '#F37819',
           secondary: '#475569',
-          accent: '#3B82F6',
-          bg: '#F8FAFC',
+          accent: '#EA580C',
+          bg: '#F0F2F5',
           surface: '#FFFFFF',
           text: '#0F172A',
           border: '#E2E8F0'
@@ -140,20 +140,20 @@ export const appearanceApiInterceptor: HttpInterceptorFn = (req, next) => {
       body: {
         tenantId,
         branding: tenantBranding || {
-          applicationName: 'Lender News',
+          applicationName: 'News Radar',
           logoUrl: DEFAULT_AUTH_LOGO,
           loginLogo: DEFAULT_AUTH_LOGO,
           sidebarLogo: DEFAULT_AUTH_LOGO,
-          favicon: '',
-          faviconUrl: '',
+          favicon: DEFAULT_AUTH_LOGO,
+          faviconUrl: DEFAULT_AUTH_LOGO,
           termsPrivacyText: 'By signing in you agree to our Terms of Service and Privacy Policy.',
-          primaryColor: '#2563EB',
+          primaryColor: '#F37819',
           secondaryColor: '#0F172A',
           version: 1
         },
         theme: {
           mode: 'light',
-          preset: 'enterprise-blue'
+          preset: 'imgc-orange'
         },
         display: {
           typographyScale: 'medium'

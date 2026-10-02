@@ -43,6 +43,7 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
     const classifyResult = await classifier.classifyPending({ limit: 100 });
     stats.articlesClassified = classifyResult.classified;
     stats.articlesFailed = classifyResult.failed;
+    if (classifyResult.abortReason) run.error = classifyResult.abortReason;
 
     const alertThresholdRank = LEVEL_RANK[env.alertThreshold] || 3;
     const qualifyingLevels = Object.keys(LEVEL_RANK).filter((l) => LEVEL_RANK[l] >= alertThresholdRank);

@@ -7,5 +7,5 @@ export interface ThemeConfig {
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   mode: 'light',
-  presetId: 'enterprise-blue'
+  presetId: 'imgc-orange'
 };

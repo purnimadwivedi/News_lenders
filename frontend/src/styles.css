@@ -157,7 +157,7 @@ button.accent { background: var(--accent); color: white; border-color: var(--acc
 button.accent:hover { background: #d96914; }
 button.danger { color: var(--critical); border-color: #fecaca; }
 button.danger:hover { background: #fee2e2; }
-button.btn-accent { background: #f37920; color: #ffffff; border-color: #f37920; font-weight: 600; }
+button.btn-accent { background: var(--app-primary, #f37819); color: #ffffff; border-color: var(--app-primary, #f37819); font-weight: 600; }
 button.btn-accent:hover { background: #d96914; border-color: #d96914; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -203,7 +203,7 @@ label {
 .checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #f37920;
+  accent-color: var(--app-primary, #f37819);
   cursor: pointer;
   margin: 0;
 }
@@ -432,7 +432,7 @@ tr:hover td { background: #f8fafc; }
   padding: 4px;
 }
 .page-btn.active {
-  background: #ea580c;
+  background: var(--app-accent, #ea580c);
   color: #ffffff;
   border-radius: 4px;
   padding: 4px 10px;
@@ -462,9 +462,9 @@ tr:hover td { background: #f8fafc; }
 .sidebar {
   width: 240px;
   min-width: 240px;
-  background: #404040;
-  color: #e5e7eb;
-  padding: 20px 16px;
+  background: var(--app-sidebar-bg, #404040);
+  color: var(--app-sidebar-fg-strong, #e5e7eb);
+  padding: 0 16px 20px;
   align-items: stretch;
   display: flex;
   flex-direction: column;
@@ -483,7 +483,7 @@ tr:hover td { background: #f8fafc; }
 .sidebar.collapsed {
   width: 72px;
   min-width: 72px;
-  padding: 20px 8px;
+  padding: 0 8px 20px;
 }
 
 .sidebar.collapsed .brand-title,
@@ -512,7 +512,7 @@ tr:hover td { background: #f8fafc; }
   width: calc(100% - 240px);
   min-height: 100vh;
   padding: 0 24px 20px 24px;
-  background: #f0f2f5;
+  background: var(--app-content-bg, #f0f2f5);
   overflow-x: hidden;
   min-width: 0;
   box-sizing: border-box;
@@ -576,7 +576,7 @@ tr:hover td { background: #f8fafc; }
   left: 0;
   right: 0;
   height: 56px;
-  background: #f37920;
+  background: var(--app-primary, #f37819);
   color: #ffffff;
   z-index: 90;
   align-items: center;
@@ -1243,7 +1243,9 @@ tr:hover td { background: #f8fafc; }
 .dash-header-bar.global-header {
   background: #ffffff;
   margin: 0 -24px 8px -24px;
-  padding: 10px 24px;
+  box-sizing: border-box;
+  height: 52px;
+  padding: 0 24px;
   border-bottom: 1px solid #cbd5e1;
   position: sticky;
   top: 0;
@@ -1289,7 +1291,7 @@ tr:hover td { background: #f8fafc; }
   right: 4px;
   width: 7px;
   height: 7px;
-  background: #f37819;
+  background: var(--app-primary, #f37819);
   border-radius: 50%;
   border: 1.5px solid #ffffff;
 }
@@ -1327,7 +1329,7 @@ tr:hover td { background: #f8fafc; }
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f37819, #ea580c);
+  background: linear-gradient(135deg, var(--app-primary, #f37819), var(--app-accent, #ea580c));
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1395,7 +1397,7 @@ tr:hover td { background: #f8fafc; }
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f37819, #ea580c);
+  background: linear-gradient(135deg, var(--app-primary, #f37819), var(--app-accent, #ea580c));
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1436,7 +1438,7 @@ tr:hover td { background: #f8fafc; }
   font-size: 10px;
   font-weight: 600;
   color: #c25e10;
-  background: #fff7ed;
+  background: var(--app-primary-soft, #fff7ed);
   border: 1px solid #fed7aa;
   padding: 2px 6px;
   border-radius: 6px;
@@ -1645,7 +1647,7 @@ tr:hover td { background: #f8fafc; }
 }
 
 .banner-chocolate {
-  background: #633414;
+  background: var(--app-banner-bg, #633414);
   border-radius: 12px;
   padding: 12px 14px;
   color: #ffffff;
@@ -1739,8 +1741,8 @@ tr:hover td { background: #f8fafc; }
 }
 
 .banner-filter-pill.filtered {
-  background: #f37819;
-  border-color: #f37819;
+  background: var(--app-primary, #f37819);
+  border-color: var(--app-primary, #f37819);
   box-shadow: 0 2px 8px rgba(243, 120, 25, 0.4);
 }
 
@@ -1851,7 +1853,7 @@ tr:hover td { background: #f8fafc; }
 }
 
 .lender-dropdown-item.selected {
-  background: #fff7ed;
+  background: var(--app-primary-soft, #fff7ed);
   color: #c25e10;
   font-weight: 600;
 }
@@ -1902,7 +1904,7 @@ tr:hover td { background: #f8fafc; }
 }
 
 .lender-dropdown-item.selected .lender-item-count {
-  background: #ffedd5;
+  background: var(--app-primary-soft-2, #ffedd5);
   color: #c25e10;
 }
 
@@ -1925,14 +1927,14 @@ tr:hover td { background: #f8fafc; }
 
 /* Active Highlight in Top Mentioned Lenders list */
 .dash-bar-row.active-lender-bar {
-  background: #fff7ed;
-  border-left: 3px solid #f37819;
+  background: var(--app-primary-soft, #fff7ed);
+  border-left: 3px solid var(--app-primary, #f37819);
   padding-left: 9px;
   border-radius: 6px;
 }
 
 .dash-fill-blue.active-fill {
-  background: #f37819;
+  background: var(--app-primary, #f37819);
 }
 
 .banner-cards-grid {
@@ -2000,8 +2002,8 @@ tr:hover td { background: #f8fafc; }
 }
 
 .icon-orange {
-  background: #fff7ed;
-  color: #f37819;
+  background: var(--app-primary-soft, #fff7ed);
+  color: var(--app-primary, #f37819);
   border: 1px solid #fed7aa;
 }
 
@@ -2082,7 +2084,7 @@ tr:hover td { background: #f8fafc; }
 }
 
 .tab-pill-active {
-  background: #f37819;
+  background: var(--app-primary, #f37819);
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -2201,7 +2203,7 @@ tr:hover td { background: #f8fafc; }
 }
 
 .chart-axis-orange {
-  fill: #f37819;
+  fill: var(--app-primary, #f37819);
 }
 
 .chart-axis-green {
@@ -2236,7 +2238,7 @@ tr:hover td { background: #f8fafc; }
 .legend-swatch-orange {
   width: 12px;
   height: 12px;
-  background: #f37819;
+  background: var(--app-primary, #f37819);
   border-radius: 3px;
 }
 
@@ -2388,6 +2390,8 @@ tr:hover td { background: #f8fafc; }
   justify-content: center;
   width: 36px;
   height: 36px;
+  padding: 0;
+  flex-shrink: 0;
   border-radius: 9px;
   border: 1px solid var(--border, #e2e8f0);
   background: var(--surface, #ffffff);
@@ -2395,6 +2399,12 @@ tr:hover td { background: #f8fafc; }
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-studio-star svg,
+.btn-studio-star-mobile svg {
+  flex-shrink: 0;
+  max-width: none;
 }
 
 .btn-studio-star:hover {
@@ -2411,6 +2421,8 @@ tr:hover td { background: #f8fafc; }
   justify-content: center;
   width: 32px;
   height: 32px;
+  padding: 0;
+  flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid var(--border, #e2e8f0);
   background: var(--surface, #ffffff);
@@ -2849,3 +2861,134 @@ body.dark-theme ::-webkit-scrollbar-thumb:hover {
   background: transparent;
 }
 
+
+/* ==================================================
+   DARK MODE — dashboard widgets
+   Component colours above are tuned for light mode; these keep text readable on dark surfaces.
+   ================================================== */
+:is([data-theme="dark"], body.dark-theme) .dash-card {
+  background: var(--color-surface-elevated) !important;
+  border-color: var(--color-border) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-card-value:not([style*="color"]),
+:is([data-theme="dark"], body.dark-theme) .dash-card-label,
+:is([data-theme="dark"], body.dark-theme) .dash-chart-title,
+:is([data-theme="dark"], body.dark-theme) .dash-user-name,
+:is([data-theme="dark"], body.dark-theme) .company-name,
+:is([data-theme="dark"], body.dark-theme) .bar-count {
+  color: var(--color-text-primary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-card-sub,
+:is([data-theme="dark"], body.dark-theme) .chart-legend,
+:is([data-theme="dark"], body.dark-theme) .legend-item,
+:is([data-theme="dark"], body.dark-theme) .dash-user-role {
+  color: var(--color-text-secondary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-chart-header {
+  border-color: var(--color-border) !important;
+}
+:is([data-theme="dark"], body.dark-theme) button.tab-pill-active,
+:is([data-theme="dark"], body.dark-theme) .tab-pill-active {
+  background: var(--app-primary, var(--color-primary)) !important;
+  border-color: var(--app-primary, var(--color-primary)) !important;
+  color: #ffffff !important;
+}
+:is([data-theme="dark"], body.dark-theme) button.tab-pill-outline,
+:is([data-theme="dark"], body.dark-theme) .tab-pill-outline {
+  background: var(--color-surface-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-bar-track,
+:is([data-theme="dark"], body.dark-theme) .dash-bar-track.blue-theme {
+  background: rgba(148, 163, 184, 0.18) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-bar-row.active-lender-bar {
+  background: color-mix(in srgb, var(--app-primary, #f37819) 16%, transparent) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .chart-grid-line {
+  stroke: rgba(148, 163, 184, 0.25) !important;
+}
+
+/* DARK MODE — tables, news feed and settings */
+:is([data-theme="dark"], body.dark-theme) tr {
+  background: transparent !important;
+}
+:is([data-theme="dark"], body.dark-theme) tr:hover td {
+  background: var(--color-surface-elevated) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .rationale {
+  background: var(--color-surface-elevated) !important;
+  color: var(--color-text-secondary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .suggested,
+:is([data-theme="dark"], body.dark-theme) .description {
+  color: var(--color-text-secondary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .card h2,
+:is([data-theme="dark"], body.dark-theme) .section-head h2,
+:is([data-theme="dark"], body.dark-theme) .field-label,
+:is([data-theme="dark"], body.dark-theme) .category-name {
+  color: var(--color-text-primary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .field-hint,
+:is([data-theme="dark"], body.dark-theme) .category-id {
+  color: var(--color-text-muted) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .impact-block,
+:is([data-theme="dark"], body.dark-theme) .category-item-row,
+:is([data-theme="dark"], body.dark-theme) .category-form-card {
+  background: var(--color-surface-elevated) !important;
+  border-color: var(--color-border) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .definition-textarea,
+:is([data-theme="dark"], body.dark-theme) textarea {
+  background: var(--color-bg-secondary, #111827) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* DARK MODE — dashboard charts and KPI icons */
+:is([data-theme="dark"], body.dark-theme) .dash-card-value[style*="color"] {
+  color: #fb923c !important; /* brighter orange for severity numbers on dark cards */
+}
+:is([data-theme="dark"], body.dark-theme) .dash-svg-chart text[fill="#334155"] {
+  fill: var(--color-text-secondary) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-svg-chart text[fill="#2563eb"] {
+  fill: #60a5fa !important;
+}
+:is([data-theme="dark"], body.dark-theme) .dash-svg-chart text[fill="#94a3b8"] {
+  fill: var(--color-text-muted) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .icon-blue {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #60a5fa !important;
+}
+:is([data-theme="dark"], body.dark-theme) .icon-orange {
+  background: color-mix(in srgb, var(--app-primary, #f37819) 18%, transparent) !important;
+  color: color-mix(in srgb, var(--app-primary, #f37819) 70%, #ffffff) !important;
+}
+:is([data-theme="dark"], body.dark-theme) .icon-cyan {
+  background: rgba(6, 182, 212, 0.16) !important;
+  color: #22d3ee !important;
+}
+
+/* ==================================================
+   TYPOGRAPHY — aligned with the IMGC Portal reference (Inter; lighter, compact headings)
+   ================================================== */
+.authenticated-app .sidebar .nav-text { font-size: 13px; }
+.authenticated-app .banner-title { font-size: 16px !important; font-weight: 700 !important; }
+.authenticated-app .dash-card-value { font-weight: 600; }
+.authenticated-app .dash-card-label { font-size: 12px; font-weight: 500; }
+.authenticated-app .dash-chart-title { font-size: 13px !important; font-weight: 700; }
+.authenticated-app .company-name { font-size: 12px; font-weight: 400; }
+.authenticated-app .bar-count { font-size: 12px; font-weight: 700; }
+.authenticated-app .legend-item { font-size: 10px; font-weight: 500; }
+.authenticated-app .dash-user-name { font-weight: 600; }
+.authenticated-app .period-toggle-btn,
+.authenticated-app .tab-pill-active,
+.authenticated-app .tab-pill-outline,
+.authenticated-app .banner-filter-pill {
+  font-size: 12px !important;
+}

@@ -13,7 +13,9 @@ const CategorySchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
     name: { type: String, required: true },
-    description: { type: String, default: '' }
+    description: { type: String, default: '' },
+    imgcDefinition: { type: String, default: '' },
+    llmInstructions: { type: String, default: '' }
   },
   { timestamps: true }
 );
