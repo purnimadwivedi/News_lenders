@@ -1,4 +1,4 @@
-import { Component, OnInit, DoCheck, inject } from '@angular/core';
+import { Component, OnInit, DoCheck, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -134,6 +134,30 @@ import { Recipient } from '../models';
         </div>
       </div>
     </div>
+
+    <div *ngIf="deleting" class="logout-modal-backdrop" (click)="cancelDelete()">
+      <div class="logout-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="delete-recipient-title"
+           aria-describedby="delete-recipient-msg" (click)="$event.stopPropagation()">
+        <div class="logout-modal-icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#dc2626" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <h3 id="delete-recipient-title" class="logout-modal-title">Delete recipient?</h3>
+        <p id="delete-recipient-msg" class="logout-modal-msg">
+          <b>{{ deleting.name }}</b><span *ngIf="deleting.email"> ({{ deleting.email }})</span> will be removed and will
+          no longer receive alerts or digests. This cannot be undone.
+        </p>
+        <div *ngIf="deleteError" class="logout-modal-error">{{ deleteError }}</div>
+        <div class="logout-modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="cancelDelete()" [disabled]="deleteBusy">Cancel</button>
+          <button type="button" class="btn-modal-logout" (click)="confirmDelete()" [disabled]="deleteBusy">
+            {{ deleteBusy ? 'Deleting…' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [
     `
@@ -157,6 +181,11 @@ export class RecipientsComponent implements OnInit, DoCheck {
   search = '';
   editing: Partial<Recipient> | null = null;
   error = '';
+
+  // Recipient awaiting delete confirmation
+  deleting: Recipient | null = null;
+  deleteBusy = false;
+  deleteError = '';
   
   sortCol = 'name';
   sortDesc = false;
@@ -266,8 +295,35 @@ export class RecipientsComponent implements OnInit, DoCheck {
   }
 
   del(r: Recipient) {
-    if (!confirm(`Remove ${r.name}?`)) return;
-    this.api.deleteRecipient(r._id!).subscribe(() => this.load());
+    this.deleting = r;
+    this.deleteError = '';
+  }
+
+  cancelDelete() {
+    if (this.deleteBusy) return;
+    this.deleting = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.deleting) this.cancelDelete();
+  }
+
+  confirmDelete() {
+    if (!this.deleting?._id) return;
+    this.deleteBusy = true;
+    this.deleteError = '';
+    this.api.deleteRecipient(this.deleting._id).subscribe({
+      next: () => {
+        this.deleteBusy = false;
+        this.deleting = null;
+        this.load();
+      },
+      error: (err) => {
+        this.deleteBusy = false;
+        this.deleteError = err.error?.error || 'Could not delete this recipient. Please try again.';
+      }
+    });
   }
 
   test(r: Recipient) {
