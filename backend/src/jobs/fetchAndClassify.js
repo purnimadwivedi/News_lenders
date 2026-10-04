@@ -10,8 +10,28 @@ const emailService = require('../services/emailService');
 
 const LEVEL_RANK = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
+// Only one fetch+classify may run at a time; overlapping runs would classify (and alert on) the same articles twice.
+let running = false;
+
+function isFetchRunning() {
+  return running;
+}
+
 async function runFetchAndClassify({ trigger = 'cron' } = {}) {
-  const run = await RunLog.create({ job: trigger === 'cron' ? 'fetch' : 'manual', startedAt: new Date(), status: 'running' });
+  if (running) {
+    logger.warn(`Fetch+Classify (${trigger}) skipped — a run is already in progress`);
+    return null;
+  }
+  running = true;
+  try {
+    return await doFetchAndClassify({ trigger });
+  } finally {
+    running = false;
+  }
+}
+
+async function doFetchAndClassify({ trigger }) {
+  const run =await RunLog.create({ job: trigger === 'cron' ? 'fetch' : 'manual', startedAt: new Date(), status: 'running' });
   logger.info(`=== Fetch+Classify run started (${trigger}) — runId=${run._id} ===`);
 
   const stats = {
@@ -96,4 +116,4 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
   return run;
 }
 
-module.exports = { runFetchAndClassify };
+module.exports = { runFetchAndClassify, isFetchRunning };
