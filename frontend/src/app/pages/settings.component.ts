@@ -82,17 +82,11 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
       <ng-container *ngIf="cfg && selectedConfiguration === 'impact'">
         <!-- Impact Configuration Card -->
         <div class="card section">
-          <div class="section-head" (click)="impactConfigOpen = !impactConfigOpen" style="cursor: pointer;">
-            <div>
-              <h2>Impact Configuration</h2>
-              <p class="muted small">Configure IMGC-specific definitions and specific instructions for the LLM classifier for each impact level.</p>
-            </div>
-            <button type="button" class="pill-btn" (click)="impactConfigOpen = !impactConfigOpen; $event.stopPropagation()">
-              {{ impactConfigOpen ? 'Hide' : 'Show' }}
-            </button>
+          <div class="section-head">
+            <h2>Impact Configuration</h2>
           </div>
 
-          <div *ngIf="impactConfigOpen" class="config-content-wrapper">
+          <div class="config-content-wrapper">
             <!-- Impact Configuration Grid / Table (2 Columns: Impact & IMGC Specific Definition) -->
             <div class="impact-table-section">
               <div class="impact-table-wrapper">
@@ -131,7 +125,6 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
                   <span class="label-badge llm-badge">B</span>
                   <strong>LLM Instructions for Impact Configuration</strong>
                 </label>
-                <div class="field-hint">Unified instructions guiding the LLM classifier on how to evaluate, weigh, and determine impact severity across all news articles.</div>
                 <textarea
                   [(ngModel)]="cfg.impactLlmInstructions"
                   placeholder="e.g. When evaluating impact for IMGC, focus on systemic liquidity, borrowing cost escalations for counterparty banks and HFCs, and major regulatory directives by RBI/NHB..."
@@ -149,23 +142,15 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
       <!-- ========================================================= -->
       <ng-container *ngIf="cfg && selectedConfiguration === 'category'">
         <div class="card section category-config-card">
-          <!-- Category Configuration Header Area with Top + Add Category Button & Hide/Show Button -->
+          <!-- Category Configuration Header Area with + Add Category Button -->
           <div class="category-header-bar">
-            <div>
-              <h2>Category Configuration</h2>
-              <p class="muted small">Manage categories used by the LLM classifier.</p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button type="button" class="primary add-cat-btn" (click)="openAddCategoryModal()">
-                + Add Category
-              </button>
-              <button type="button" class="pill-btn" (click)="categoryConfigOpen = !categoryConfigOpen">
-                {{ categoryConfigOpen ? 'Hide' : 'Show' }}
-              </button>
-            </div>
+            <h2>Category Configuration</h2>
+            <button type="button" class="primary add-cat-btn" (click)="openAddCategoryModal()">
+              + Add Category
+            </button>
           </div>
 
-          <div *ngIf="categoryConfigOpen" class="config-content-wrapper">
+          <div class="config-content-wrapper">
             <!-- Clean Category Grid / Table (3 Columns: Category, IMGC Specific Definition, Actions) -->
             <div class="category-table-wrapper">
               <table class="category-table">
@@ -216,7 +201,6 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
                   <span class="label-badge llm-badge">B</span>
                   <strong>LLM Instructions for Category Configuration</strong>
                 </label>
-                <div class="field-hint">Unified instructions guiding the LLM classifier on how to identify, categorize, and prioritize news types across all categories.</div>
                 <textarea
                   [(ngModel)]="cfg.categoryLlmInstructions"
                   placeholder="e.g. Prioritize Regulatory when direct RBI, NHB, or Ministry circulars or penalties are involved. Assign Financial for balance sheet stress, liquidity, rating changes, and NPA data..."
@@ -230,7 +214,7 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
       </ng-container>
 
       <!-- Action Toolbar (Save & Apply / Discard / Reset) -->
-      <div *ngIf="cfg" class="toolbar" style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
+      <div *ngIf="cfg" class="toolbar settings-toolbar" style="display: flex; align-items: center; gap: 10px;">
         <button class="primary" (click)="save()" [disabled]="saving">
           {{ saving ? 'Saving…' : 'Save & apply next fetch' }}
         </button>
@@ -328,15 +312,15 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
   `,
   styles: [
     `
+      /* Full width with tight spacing so the configuration fits on screen without a page scrollbar. */
       .settings-page {
         display: block;
-        max-width: 1050px;
-        margin: 0 auto;
-        padding-bottom: 20px;
       }
       h2 { margin: 0 0 2px 0; font-size: 15px; font-weight: 700; color: #1e293b; }
       .small { font-size: 11.5px; }
-      .section { margin-top: 10px; }
+      .section { margin-top: 4px; }
+      .settings-page .card.section { padding: 12px 14px; }
+      .settings-toolbar { margin: 6px 0 0; }
       .section-head {
         display: flex;
         align-items: center;
@@ -350,12 +334,12 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: 8px;
-        margin-bottom: 2px;
+        margin-top: 0;
+        margin-bottom: 0;
         flex-wrap: wrap;
       }
       .config-tab-btn {
-        padding: 7px 18px;
+        padding: 5px 18px;
         font-size: 13px;
         font-weight: 600;
         border-radius: 7px;
@@ -388,8 +372,8 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         border: 1px solid #e2e8f0;
         border-left: 4px solid #6366f1;
         border-radius: 8px;
-        padding: 8px 12px;
-        margin-top: 8px;
+        padding: 6px 12px;
+        margin-top: 0;
       }
       .shared-textarea {
         background: #ffffff;
@@ -460,18 +444,19 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         line-height: 1.25;
       }
       .definition-textarea {
+        display: block;
         width: 100%;
-        min-height: 44px;
-        height: 44px;
+        min-height: 38px;
+        height: 38px;
         margin: 0;
         box-sizing: border-box;
         resize: vertical;
         font-size: 12px;
-        line-height: 1.35;
+        line-height: 1.25;
         border-radius: 6px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
-        padding: 5px 10px;
+        padding: 3px 10px;
       }
 
       /* Impact Configuration Grid / Table Styles */
@@ -496,12 +481,12 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         font-size: 11.5px;
         text-transform: uppercase;
         letter-spacing: 0.03em;
-        padding: 6px 12px;
+        padding: 4px 12px;
         border-bottom: 1px solid #e2e8f0;
         text-align: left;
       }
       .impact-table td {
-        padding: 5px 10px;
+        padding: 3px 10px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: top;
       }
@@ -516,25 +501,26 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         min-width: 95px;
         white-space: nowrap;
         vertical-align: top;
-        padding-top: 8px;
+        padding-top: 6px;
       }
       .col-imgc {
         vertical-align: top;
       }
       .grid-textarea {
+        display: block; /* inline textareas leave a baseline gap under them in each row */
         width: 100%;
-        min-height: 38px;
-        height: 38px;
+        min-height: 36px;
+        height: 36px;
         margin: 0;
         box-sizing: border-box;
         resize: vertical;
         font-size: 12px;
-        line-height: 1.35;
+        line-height: 1.25;
         border-radius: 6px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
         color: #1e293b;
-        padding: 5px 10px;
+        padding: 2px 10px;
         font-family: inherit;
         transition: border-color 0.15s, box-shadow 0.15s;
       }
@@ -552,14 +538,14 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
 
       /* Category Configuration Section Styles */
       .category-config-card {
-        padding: 12px 16px;
+        padding: 10px 14px;
       }
       .category-header-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
       }
       .add-cat-btn {
         padding: 5px 14px;
@@ -588,12 +574,12 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         font-size: 11.5px;
         text-transform: uppercase;
         letter-spacing: 0.03em;
-        padding: 6px 12px;
+        padding: 4px 12px;
         border-bottom: 1px solid #e2e8f0;
         text-align: left;
       }
       .category-table td {
-        padding: 5px 10px;
+        padding: 3px 10px;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: top;
       }
@@ -608,7 +594,7 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         min-width: 120px;
         white-space: nowrap;
         vertical-align: top;
-        padding-top: 8px;
+        padding-top: 6px;
       }
       .col-actions {
         width: 120px;
@@ -841,9 +827,6 @@ export class SettingsComponent implements OnInit {
   private api = inject(ApiService);
   cfg: Configuration | null = null;
   saving = false;
-  impactConfigOpen = true;
-  categoryConfigOpen = true;
-  categoryDefsOpen = true;
   status: { kind: 'ok' | 'err'; msg: string } | null = null;
 
   // Selected Tab: Default 'impact'
