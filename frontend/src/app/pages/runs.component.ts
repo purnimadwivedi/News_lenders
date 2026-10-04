@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, DoCheck, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, DoCheck, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -12,18 +12,22 @@ import { NewsArticle, RunLog } from '../models';
   template: `
     <div class="page-header-row" style="justify-content: flex-end;">
       <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy">Fetch + classify now</button>
+        <button class="btn-accent" (click)="triggerFetch()" [disabled]="busy || fetchRunning" [title]="fetchRunning ? 'A fetch + classify run is in progress' : ''">
+          {{ fetchRunning ? 'Fetch running…' : 'Fetch + classify now' }}
+        </button>
         <button class="pill-btn" (click)="exportDigestPdf()" [disabled]="busy || exportingPdf" title="Export Digest in PDF format">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
           {{ exportingPdf ? 'Preparing PDF…' : 'Export Digest (PDF)' }}
         </button>
-        <button (click)="triggerDigest()" [disabled]="busy">Send digest now</button>
+        <button (click)="triggerDigest()" [disabled]="busy || digestRunning" [title]="digestRunning ? 'A digest run is in progress' : ''">
+          {{ digestRunning ? 'Digest running…' : 'Send digest now' }}
+        </button>
       </div>
     </div>
 
-    <div *ngIf="message" class="card" style="margin-top: 14px; background: #ecfdf5; border-color: #a7f3d0;">
+    <div *ngIf="message" class="card" style="margin-top: 14px;" [ngClass]="messageIsError ? 'msg-error' : 'msg-ok'">
       {{ message }}
     </div>
 
@@ -57,7 +61,6 @@ import { NewsArticle, RunLog } from '../models';
               <th (click)="sortBy('startedAt')">Started <span class="sort-icon">{{ sortCol === 'startedAt' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('duration')">Duration <span class="sort-icon">{{ sortCol === 'duration' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('companiesProcessed')">Lenders <span class="sort-icon">{{ sortCol === 'companiesProcessed' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
-              <th (click)="sortBy('articlesFetched')">Fetched <span class="sort-icon">{{ sortCol === 'articlesFetched' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesNew')">New <span class="sort-icon">{{ sortCol === 'articlesNew' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesClassified')">Classified <span class="sort-icon">{{ sortCol === 'articlesClassified' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
             </tr>
@@ -66,17 +69,20 @@ import { NewsArticle, RunLog } from '../models';
             <tr *ngFor="let r of pagedRuns">
               <td style="font-weight: 500;">{{ r.job }}</td>
               <td>
-                <span style="font-weight: 500; font-size: 12px; padding: 2px 8px; border-radius: 12px;" [ngClass]="'status-' + r.status">{{ r.status }}</span>
+                <button *ngIf="r.status === 'failed'; else plainStatus" type="button" class="status-badge status-failed status-link"
+                        (click)="errorRun = r" title="View error details">{{ r.status }}</button>
+                <ng-template #plainStatus>
+                  <span class="status-badge" [ngClass]="'status-' + r.status">{{ r.status }}</span>
+                </ng-template>
               </td>
               <td style="color: #64748b;">{{ r.startedAt | date: 'short' }}</td>
               <td style="color: #64748b;">{{ duration(r) }}</td>
               <td>{{ r.stats.companiesProcessed || 0 }}</td>
-              <td>{{ r.stats.articlesFetched || 0 }}</td>
               <td style="color: #10b981; font-weight: 600;">{{ r.stats.articlesNew || 0 }}</td>
               <td>{{ r.stats.articlesClassified || 0 }}</td>
             </tr>
             <tr *ngIf="!pagedRuns.length">
-              <td colspan="8" style="text-align:center; padding: 30px; color: #94a3b8;">
+              <td colspan="7" style="text-align:center; padding: 30px; color: #94a3b8;">
                 {{ search.trim() ? 'No jobs match your search.' : 'No runs yet.' }}
               </td>
             </tr>
@@ -102,6 +108,17 @@ import { NewsArticle, RunLog } from '../models';
         </div>
       </div>
     </div>
+
+    <div *ngIf="errorRun" class="logout-modal-backdrop" (click)="errorRun = null">
+      <div class="logout-modal-card" role="dialog" aria-modal="true" aria-labelledby="run-error-title" (click)="$event.stopPropagation()">
+        <h3 id="run-error-title" class="logout-modal-title">Run failed</h3>
+        <p class="run-error-meta">{{ errorRun.job }} · started {{ errorRun.startedAt | date: 'medium' }}</p>
+        <div class="logout-modal-error run-error-text">{{ errorRun.error || 'No error details were recorded for this run.' }}</div>
+        <div class="logout-modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="errorRun = null">Close</button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [
     `
@@ -110,6 +127,17 @@ import { NewsArticle, RunLog } from '../models';
       .status-partial { background: #fef9c3; color: var(--medium); }
       .status-failed { background: #fee2e2; color: var(--critical); }
       .status-running { background: #dbeafe; color: #1d4ed8; }
+      .status-badge { font-weight: 500; font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+      .status-link {
+        border: none; font-family: inherit; line-height: inherit; cursor: pointer;
+        min-height: 0; height: auto; display: inline;
+        text-decoration: underline; text-underline-offset: 2px;
+      }
+      .status-link:hover { background: #fecaca; }
+      .run-error-meta { font-size: 13px; color: #64748b; margin: 0 0 14px 0; }
+      .run-error-text { white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+      .msg-ok { background: #ecfdf5; border-color: #a7f3d0; }
+      .msg-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
     `
   ]
 })
@@ -120,6 +148,14 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
   selectedStatus = '';
   busy = false;
   message = '';
+  messageIsError = false;
+  errorRun: RunLog | null = null;
+
+  @HostListener('document:keydown.escape')
+  closeErrorDialog() {
+    this.errorRun = null;
+  }
+  private messageTimer?: ReturnType<typeof setTimeout>;
   private poll?: ReturnType<typeof setInterval>;
 
   sortCol = 'startedAt';
@@ -174,7 +210,6 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
         v1 = ms1; v2 = ms2;
       }
       if (this.sortCol === 'companiesProcessed') { v1 = a.stats.companiesProcessed || 0; v2 = b.stats.companiesProcessed || 0; }
-      if (this.sortCol === 'articlesFetched') { v1 = a.stats.articlesFetched || 0; v2 = b.stats.articlesFetched || 0; }
       if (this.sortCol === 'articlesNew') { v1 = a.stats.articlesNew || 0; v2 = b.stats.articlesNew || 0; }
       if (this.sortCol === 'articlesClassified') { v1 = a.stats.articlesClassified || 0; v2 = b.stats.articlesClassified || 0; }
       
@@ -198,7 +233,8 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
       Lenders: r.stats.companiesProcessed || 0,
       Fetched: r.stats.articlesFetched || 0,
       New: r.stats.articlesNew || 0,
-      Classified: r.stats.articlesClassified || 0
+      Classified: r.stats.articlesClassified || 0,
+      Error: r.error || ''
     }));
     
     if (!data.length) return;
@@ -268,36 +304,55 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
 
   ngOnDestroy() {
     if (this.poll) clearInterval(this.poll);
+    clearTimeout(this.messageTimer);
   }
 
   load() {
     this.api.listRuns().subscribe((r) => (this.runs = r));
   }
 
+  // The server refuses overlapping runs; these mirror that so the buttons disable while one is active.
+  get fetchRunning(): boolean {
+    return this.runs.some((r) => r.status === 'running' && r.job !== 'digest');
+  }
+
+  get digestRunning(): boolean {
+    return this.runs.some((r) => r.status === 'running' && r.job === 'digest');
+  }
+
   triggerFetch() {
     this.busy = true;
     this.api.triggerFetch().subscribe({
-      next: () => {
-        this.message = 'Fetch + classify started — refresh in a few seconds';
-        this.busy = false;
-        setTimeout(() => this.load(), 1500);
-        setTimeout(() => (this.message = ''), 8000);
-      },
-      error: () => (this.busy = false)
+      next: () => this.started('Fetch + classify started — refresh in a few seconds'),
+      error: (err) => this.failed(err, 'Could not start fetch + classify')
     });
   }
 
   triggerDigest() {
     this.busy = true;
     this.api.triggerDigest().subscribe({
-      next: () => {
-        this.message = 'Digest generation started';
-        this.busy = false;
-        setTimeout(() => this.load(), 1500);
-        setTimeout(() => (this.message = ''), 8000);
-      },
-      error: () => (this.busy = false)
+      next: () => this.started('Digest generation started'),
+      error: (err) => this.failed(err, 'Could not start the digest')
     });
+  }
+
+  private started(text: string) {
+    this.busy = false;
+    this.showMessage(text, false);
+    setTimeout(() => this.load(), 1500);
+  }
+
+  private failed(err: any, fallback: string) {
+    this.busy = false;
+    this.showMessage(err?.error?.error || fallback, true);
+    this.load();
+  }
+
+  private showMessage(text: string, isError: boolean) {
+    this.message = text;
+    this.messageIsError = isError;
+    clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => (this.message = ''), 8000);
   }
 
   duration(r: RunLog): string {

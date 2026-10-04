@@ -1,9 +1,20 @@
 ﻿const express = require('express');
 const Configuration = require('../models/Configuration');
+const Company = require('../models/Company');
+const { buildNewsQuery, resolveTopicMode, MAX_QUERY_LENGTH } = require('../utils/newsQuery');
 
 const router = express.Router();
 
-const ALLOWED = ['impactLevelDefinitions', 'categories', 'extraGuidance', 'updatedBy', 'riskTypeDefinitions', 'impactLlmInstructions', 'categoryLlmInstructions'];
+const ALLOWED = ['impactLevelDefinitions', 'categories', 'extraGuidance', 'updatedBy', 'riskTypeDefinitions', 'defaultTopicKeywords', 'impactLlmInstructions', 'categoryLlmInstructions'];
+
+// Lenders on the shared topic filter whose NewsAPI query would exceed the limit with these topics.
+async function lendersOverQueryLimit(defaultTopics) {
+  const companies = await Company.find({ active: true }).lean();
+  return companies
+    .filter((c) => resolveTopicMode(c) === 'default' && buildNewsQuery(c, defaultTopics).length > MAX_QUERY_LENGTH)
+    .map((c) => c.name);
+}
+//const ALLOWED = ['impactLevelDefinitions', 'categories', 'extraGuidance', 'updatedBy', 'riskTypeDefinitions', 'impactLlmInstructions', 'categoryLlmInstructions'];
 
 router.get('/', async (req, res, next) => {
   try {
@@ -19,6 +30,14 @@ router.put('/', async (req, res, next) => {
     const update = {};
     for (const k of ALLOWED) {
       if (req.body[k] !== undefined) update[k] = req.body[k];
+    }
+    if (update.defaultTopicKeywords) {
+      const over = await lendersOverQueryLimit(update.defaultTopicKeywords);
+      if (over.length) {
+        return res.status(400).json({
+          error: `These topics make the search query too long (over ${MAX_QUERY_LENGTH} characters) for: ${over.join(', ')}. Use fewer topics or shorten those lenders' aliases.`
+        });
+      }
     }
     const cfg = await Configuration.findOneAndUpdate(
       { key: 'global' },

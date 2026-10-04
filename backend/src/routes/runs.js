@@ -1,8 +1,8 @@
 const express = require('express');
 const RunLog = require('../models/RunLog');
 const EmailLog = require('../models/EmailLog');
-const { runFetchAndClassify } = require('../jobs/fetchAndClassify');
-const { runDailyDigest } = require('../jobs/dailyDigest');
+const { runFetchAndClassify, isFetchRunning } = require('../jobs/fetchAndClassify');
+const { runDailyDigest, isDigestRunning } = require('../jobs/dailyDigest');
 
 const router = express.Router();
 
@@ -26,6 +26,9 @@ router.get('/emails', async (req, res, next) => {
 
 router.post('/fetch-now', async (req, res, next) => {
   try {
+    if (isFetchRunning()) {
+      return res.status(409).json({ error: 'A fetch + classify run is already in progress' });
+    }
     res.status(202).json({ ok: true, message: 'Fetch + classify started in background' });
     runFetchAndClassify({ trigger: 'manual' }).catch(() => {});
   } catch (err) {
@@ -35,6 +38,9 @@ router.post('/fetch-now', async (req, res, next) => {
 
 router.post('/digest-now', async (req, res, next) => {
   try {
+    if (isDigestRunning()) {
+      return res.status(409).json({ error: 'A digest run is already in progress' });
+    }
     res.status(202).json({ ok: true, message: 'Digest started in background' });
     runDailyDigest().catch(() => {});
   } catch (err) {

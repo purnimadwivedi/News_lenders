@@ -2,6 +2,7 @@ const Company = require('../models/Company');
 const NewsArticle = require('../models/NewsArticle');
 const Recipient = require('../models/Recipient');
 const RunLog = require('../models/RunLog');
+const Configuration = require('../models/Configuration');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const newsService = require('../services/newsService');
@@ -10,7 +11,27 @@ const emailService = require('../services/emailService');
 
 const LEVEL_RANK = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
+// Only one fetch+classify may run at a time; overlapping runs would classify (and alert on) the same articles twice.
+let running = false;
+
+function isFetchRunning() {
+  return running;
+}
+
 async function runFetchAndClassify({ trigger = 'cron' } = {}) {
+  if (running) {
+    logger.warn(`Fetch+Classify (${trigger}) skipped — a run is already in progress`);
+    return null;
+  }
+  running = true;
+  try {
+    return await doFetchAndClassify({ trigger });
+  } finally {
+    running = false;
+  }
+}
+
+async function doFetchAndClassify({ trigger }) {
   const run = await RunLog.create({ job: trigger === 'cron' ? 'fetch' : 'manual', startedAt: new Date(), status: 'running' });
   logger.info(`=== Fetch+Classify run started (${trigger}) — runId=${run._id} ===`);
 
@@ -22,28 +43,38 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
     articlesFailed: 0,
     emailsSent: 0
   };
+  let fetchStopped = false;
 
   try {
     const companies = await Company.find({ active: true });
+    const { defaultTopicKeywords: defaultTopics = [] } = await Configuration.getSingleton();
     if (!companies.length) {
       logger.warn('No active companies configured. Add some via POST /api/companies');
     }
 
     for (const company of companies) {
       try {
-        const res = await newsService.fetchAndStoreForCompany(company);
+        const res = await newsService.fetchAndStoreForCompany(company, { defaultTopics });
         stats.companiesProcessed += 1;
         stats.articlesFetched += res.fetched;
         stats.articlesNew += res.newCount;
       } catch (err) {
         logger.error(`Fetch failed for ${company.name}: ${err.message}`);
+        // A bad key or exhausted daily quota fails every lender the same way; stop and say so.
+        if (err.accountWide) {
+          fetchStopped = true;
+          run.error = `News fetch stopped: ${err.message}`;
+          break;
+        }
       }
     }
 
     const classifyResult = await classifier.classifyPending({ limit: 100 });
     stats.articlesClassified = classifyResult.classified;
     stats.articlesFailed = classifyResult.failed;
-    if (classifyResult.abortReason) run.error = classifyResult.abortReason;
+    if (classifyResult.abortReason) {
+      run.error = [run.error, classifyResult.abortReason].filter(Boolean).join(' · ');
+    }
 
     const alertThresholdRank = LEVEL_RANK[env.alertThreshold] || 3;
     const qualifyingLevels = Object.keys(LEVEL_RANK).filter((l) => LEVEL_RANK[l] >= alertThresholdRank);
@@ -83,6 +114,8 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
     }
 
     run.status = stats.articlesFailed > 0 && stats.articlesClassified === 0 ? 'failed' : (stats.articlesFailed > 0 ? 'partial' : 'success');
+    // A fetch stopped by an account-wide NewsAPI error is not a success even if classification went fine.
+    if (fetchStopped && run.status === 'success') run.status = stats.companiesProcessed ? 'partial' : 'failed';
   } catch (err) {
     logger.error(`Run failed: ${err.message}`);
     run.status = 'failed';
@@ -96,4 +129,4 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
   return run;
 }
 
-module.exports = { runFetchAndClassify };
+module.exports = { runFetchAndClassify, isFetchRunning };

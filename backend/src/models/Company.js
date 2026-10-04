@@ -10,8 +10,14 @@ const CompanySchema = new mongoose.Schema(
       enum: ['Self', 'Customer', 'Competitor', 'Lender Partner', 'Partner', 'Vendor', 'Watchlist'],
       default: 'Watchlist'
     },
+    // Topic filter (an article must also mention one of these); used when topicMode is 'custom'.
     searchKeywords: { type: [String], default: [] },
+    // 'default' = shared topics from Configuration, 'custom' = searchKeywords, 'none' = no topic filter.
+    // Left unset on older lenders; see resolveTopicMode in utils/newsQuery.js.
+    topicMode: { type: String, enum: ['default', 'custom', 'none'] },
     active: { type: Boolean, default: true },
+    // Newest publishedAt seen in a complete NewsAPI fetch; the next fetch resumes from here.
+    newsCursor: { type: Date, default: null },
     notes: { type: String, default: '' }
   },
   { timestamps: true }

@@ -6,7 +6,27 @@ const emailService = require('../services/emailService');
 
 const LEVEL_RANK = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
+// Only one digest may run at a time; overlapping runs would email recipients twice.
+let running = false;
+
+function isDigestRunning() {
+  return running;
+}
+
 async function runDailyDigest() {
+  if (running) {
+    logger.warn('Daily digest skipped — a digest run is already in progress');
+    return null;
+  }
+  running = true;
+  try {
+    return await doDailyDigest();
+  } finally {
+    running = false;
+  }
+}
+
+async function doDailyDigest() {
   const run = await RunLog.create({ job: 'digest', startedAt: new Date(), status: 'running' });
   logger.info(`=== Daily digest run started — runId=${run._id} ===`);
 
@@ -62,4 +82,4 @@ async function runDailyDigest() {
   return run;
 }
 
-module.exports = { runDailyDigest };
+module.exports = { runDailyDigest, isDigestRunning };
