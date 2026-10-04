@@ -144,3 +144,50 @@ export interface RunLog {
   };
   error?: string;
 }
+
+export type DashboardPeriod = 'MTD' | 'QTD' | 'CFY';
+
+export interface DashboardFilter {
+  period: DashboardPeriod;
+  startDate: string;
+  endDate: string;
+  lenderId?: string;
+}
+
+export interface DashboardSummary {
+  totalArticles: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  lendersTracked: number;
+}
+
+export interface DashboardCategory {
+  _id?: string;
+  category: string;
+  count: number;
+}
+
+export interface DashboardTopLender {
+  _id?: string;
+  name?: string;
+  lenderId: string;
+  lenderName: string;
+  count: number;
+}
+
+export interface DashboardResponse {
+  period: DashboardPeriod;
+  startDate?: string;
+  endDate?: string;
+  lenderId?: string;
+  summary: DashboardSummary;
+  categories: DashboardCategory[];
+  topMentionedLenders: DashboardTopLender[];
+  window?: string;
+  total?: number;
+  byImpact?: { _id: string; count: number }[];
+  byRisk?: { _id: string; count: number }[];
+  topCompanies?: { _id: string; name: string; count: number }[];
+}

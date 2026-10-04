@@ -4,15 +4,17 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { AuthService } from '../auth.service';
-import { Company, NewsArticle, Stats } from '../models';
+import { Company, NewsArticle, Stats, DashboardPeriod, DashboardFilter, DashboardResponse } from '../models';
 import { AppearanceService, CarouselSlide } from '../appearance-studio';
+import { getDateRange } from '../utils/date-period.util';
+import { Subject, of } from 'rxjs';
+import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
-
     <!-- Announcement Carousel (Configured via Appearance Studio Carousel Tab) -->
     <div class="dash-carousel-wrap" 
          *ngIf="appearanceService.carousel.enabled && activeSlides.length > 0 && currentSlide">
@@ -33,7 +35,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
              class="carousel-slide-cta" 
              target="_blank" 
              rel="noopener noreferrer">
-            {{ currentSlide.buttonText }} →
+            {{ currentSlide.buttonText }} ↗
           </a>
         </div>
         
@@ -48,7 +50,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
     </div>
 
     <!-- Chocolate Banner matching the design image -->
-    <div class="banner-chocolate" *ngIf="stats">
+    <div class="banner-chocolate">
       <div class="banner-top-row">
         <h2 class="banner-title">{{ displayTitle }}</h2>
 
@@ -59,6 +61,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
                     class="period-toggle-btn" 
                     [class.active]="selectedPeriod === 'MTD'" 
                     (click)="setPeriod('MTD')"
+                    [disabled]="loading"
                     title="Month to Date">
               MTD
             </button>
@@ -66,6 +69,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
                     class="period-toggle-btn" 
                     [class.active]="selectedPeriod === 'QTD'" 
                     (click)="setPeriod('QTD')"
+                    [disabled]="loading"
                     title="Quarter to Date">
               QTD
             </button>
@@ -73,6 +77,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
                     class="period-toggle-btn" 
                     [class.active]="selectedPeriod === 'CFY'" 
                     (click)="setPeriod('CFY')"
+                    [disabled]="loading"
                     title="Current Financial Year">
               CFY
             </button>
@@ -98,71 +103,81 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
               </svg>
             </button>
 
-          <!-- Dropdown Menu -->
-          <div class="lender-dropdown-menu" 
-               *ngIf="lenderDropdownOpen" 
-               (click)="$event.stopPropagation()">
-            <div class="lender-search-bar">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" 
-                     [(ngModel)]="lenderSearch" 
-                     placeholder="Search lender..." 
-                     (click)="$event.stopPropagation()" />
-              <button *ngIf="lenderSearch" 
-                      type="button" 
-                      class="btn-clear-input" 
-                      (click)="lenderSearch = ''">✕</button>
-            </div>
-
-            <div class="lender-dropdown-list" role="listbox">
-              <!-- 'Every Lender' option to reset -->
-              <div class="lender-dropdown-item" 
-                   [class.selected]="!selectedCompany"
-                   (click)="selectCompany(null)"
-                   role="option"
-                   [attr.aria-selected]="!selectedCompany">
-                <div class="lender-item-left">
-                  <span class="lender-item-name">Every Lender</span>
-                  <span class="lender-item-badge">All</span>
-                </div>
-                <div class="lender-item-right">
-                  <span class="lender-item-count">{{ totalArticlesCount }}</span>
-                </div>
+            <!-- Dropdown Menu -->
+            <div class="lender-dropdown-menu" 
+                 *ngIf="lenderDropdownOpen" 
+                 (click)="$event.stopPropagation()">
+              <div class="lender-search-bar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" 
+                       [(ngModel)]="lenderSearch" 
+                       placeholder="Search lender..." 
+                       (click)="$event.stopPropagation()" />
+                <button *ngIf="lenderSearch" 
+                        type="button" 
+                        class="btn-clear-input" 
+                        (click)="lenderSearch = ''">✕</button>
               </div>
 
-              <div class="lender-dropdown-divider"></div>
-
-              <!-- List of All Lenders -->
-              <div *ngFor="let c of filteredCompanies" 
-                   class="lender-dropdown-item" 
-                   [class.selected]="selectedCompany?._id === c._id || selectedCompany?.name === c.name"
-                   (click)="selectCompany(c)"
-                   role="option"
-                   [attr.aria-selected]="selectedCompany?._id === c._id || selectedCompany?.name === c.name">
-                <div class="lender-item-left">
-                  <span class="lender-item-name" [title]="c.name">{{ c.name }}</span>
+              <div class="lender-dropdown-list" role="listbox">
+                <!-- 'Every Lender' option to reset -->
+                <div class="lender-dropdown-item" 
+                     [class.selected]="!selectedCompany"
+                     (click)="selectCompany(null)"
+                     role="option"
+                     [attr.aria-selected]="!selectedCompany">
+                  <div class="lender-item-left">
+                    <span class="lender-item-name">Every Lender</span>
+                    <span class="lender-item-badge">All</span>
+                  </div>
+                  <div class="lender-item-right">
+                    <span class="lender-item-count">{{ totalArticlesCount }}</span>
+                  </div>
                 </div>
-                <div class="lender-item-right">
-                  <span class="lender-item-count" [class.zero]="getCompanyArticleCount(c) === 0">
-                    {{ getCompanyArticleCount(c) }}
-                  </span>
-                </div>
-              </div>
 
-              <div *ngIf="filteredCompanies.length === 0" class="lender-no-results">
-                No lenders match "{{ lenderSearch }}"
+                <div class="lender-dropdown-divider"></div>
+
+                <!-- List of All Lenders -->
+                <div *ngFor="let c of filteredCompanies" 
+                     class="lender-dropdown-item" 
+                     [class.selected]="selectedCompany?._id === c._id || selectedCompany?.name === c.name"
+                     (click)="selectCompany(c)"
+                     role="option"
+                     [attr.aria-selected]="selectedCompany?._id === c._id || selectedCompany?.name === c.name">
+                  <div class="lender-item-left">
+                    <span class="lender-item-name" [title]="c.name">{{ c.name }}</span>
+                  </div>
+                  <div class="lender-item-right">
+                    <span class="lender-item-count" [class.zero]="getCompanyArticleCount(c) === 0">
+                      {{ getCompanyArticleCount(c) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div *ngIf="filteredCompanies.length === 0" class="lender-no-results">
+                  No lenders match "{{ lenderSearch }}"
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="banner-cards-grid">
-      <div class="dash-card hand-cursor" [routerLink]="getNewsLink({})">
+      <!-- Loading and Error Indicators -->
+      <div *ngIf="loading" class="banner-loading-bar" aria-label="Loading data">
+        <div class="loading-progress-indeterminate"></div>
+      </div>
+
+      <div *ngIf="error" class="banner-error-banner" role="alert">
+        <span class="error-msg">⚠️ {{ error }}</span>
+        <button type="button" class="error-retry-btn" (click)="retryLoad()">Retry</button>
+      </div>
+
+      <div class="banner-cards-grid" [class.data-loading]="loading">
+        <div class="dash-card hand-cursor" [routerLink]="getNewsLink({})">
           <div class="dash-card-header">
             <div class="dash-card-value">{{ displayTotal }}</div>
             <div class="card-icon icon-blue">
@@ -213,7 +228,6 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           <div class="dash-card-label">Low</div>
         </div>
 
-
         <div class="dash-card hand-cursor" routerLink="/companies">
           <div class="dash-card-header">
             <div class="dash-card-value">{{ displayLendersCount }}</div>
@@ -228,13 +242,8 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
     </div>
 
     <!-- Chart Cards Section -->
-    <div class="dash-grid-charts">
-      
-
-
-
-
-      <!-- 3. Categories (formerly Risk Types) -->
+    <div class="dash-grid-charts" [class.data-loading]="loading">
+      <!-- Categories (formerly Risk Types) -->
       <div class="dash-chart-card">
         <div class="dash-chart-header">
           <h3 class="dash-chart-title">Categories</h3>
@@ -243,24 +252,27 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
           </div>
         </div>
 
-        <div class="dash-graph-container" *ngIf="stats" style="height: 120px;">
+        <div class="dash-graph-container" style="height: 120px;">
           <svg class="dash-svg-chart" viewBox="0 0 490 120" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block;">
             <defs>
               <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#3b82f6" />
-                <stop offset="100%" stop-color="#2563eb" />
+                <stop offset="100%" stop-color="#1d4ed8" />
               </linearGradient>
             </defs>
 
-            <!-- Y Axis & Grid Lines -->
-            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle" fill="#2563eb">COUNT</text>
+            <!-- Horizontal Background Guide Lines -->
+            <line x1="45" y1="25" x2="480" y2="25" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
+            <line x1="45" y1="50" x2="480" y2="50" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
+            <line x1="45" y1="75" x2="480" y2="75" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
+            <line x1="45" y1="100" x2="480" y2="100" stroke="#cbd5e1" stroke-width="1.5" />
 
+            <!-- Y-Axis Dynamic Ticks -->
             <ng-container *ngFor="let tick of riskAxis.ticks">
-              <line x1="45" [attr.y1]="100 - (tick / riskAxis.niceMax) * 75" x2="445" [attr.y2]="100 - (tick / riskAxis.niceMax) * 75" [attr.class]="tick === 0 ? '' : 'chart-grid-line'" [attr.stroke]="tick === 0 ? '#cbd5e1' : null" [attr.stroke-width]="tick === 0 ? '1.5' : null" />
               <text x="38" [attr.y]="100 - (tick / riskAxis.niceMax) * 75 + 3" text-anchor="end" fill="#94a3b8" font-size="9">{{ tick }}</text>
             </ng-container>
 
-            <!-- Vertical Bars for Each Risk Level -->
+            <!-- Vertical Bars for Each Category -->
             <g *ngFor="let d of getRiskChartData()">
               <rect
                 [attr.x]="d.x"
@@ -280,6 +292,9 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
               </text>
             </g>
 
+            <text *ngIf="getRiskChartData().length === 0" x="245" y="65" text-anchor="middle" fill="#94a3b8" font-size="12">
+              No categories found for this period
+            </text>
           </svg>
         </div>
 
@@ -292,7 +307,7 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
         </div>
       </div>
 
-      <!-- 3. Top mentioned lenders -->
+      <!-- Top mentioned lenders -->
       <div class="dash-chart-card">
         <div class="dash-chart-header" style="justify-content: center; position: relative;">
           <h3 class="dash-chart-title">Top mentioned lenders</h3>
@@ -316,6 +331,10 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
                    [style.width.%]="barWidthTopCompany(item.count)"></div>
             </div>
             <span class="bar-count">{{ item.count }}</span>
+          </div>
+
+          <div *ngIf="displayTopCompanies.length === 0" style="text-align: center; color: #94a3b8; padding: 24px 0; font-size: 13px;">
+            No lender mentions found for this period
           </div>
         </div>
       </div>
@@ -350,15 +369,62 @@ import { AppearanceService, CarouselSlide } from '../appearance-studio';
         transition: all 0.15s ease-in-out;
         white-space: nowrap;
       }
-      .period-toggle-btn:hover {
+      .period-toggle-btn:hover:not(:disabled) {
         color: #ffffff;
         background: rgba(255, 255, 255, 0.15);
+      }
+      .period-toggle-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
       .period-toggle-btn.active {
         background: #ffffff;
         color: #633414;
         font-weight: 800;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      .banner-loading-bar {
+        height: 3px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        border-radius: 2px;
+        margin: 6px 0 2px 0;
+      }
+      .loading-progress-indeterminate {
+        width: 40%;
+        height: 100%;
+        background: #ffffff;
+        animation: progress-slide 1.2s infinite ease-in-out;
+      }
+      @keyframes progress-slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(350%); }
+      }
+      .banner-error-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(239, 68, 68, 0.9);
+        color: #ffffff;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .error-retry-btn {
+        background: #ffffff;
+        color: #b91c1c;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .data-loading {
+        opacity: 0.75;
+        transition: opacity 0.2s ease-in-out;
       }
     `
   ]
@@ -367,10 +433,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   public authService = inject(AuthService);
   public appearanceService = inject(AppearanceService);
+
+  selectedPeriod: DashboardPeriod = 'MTD';
+  selectedLender = 'ALL';
+  selectedCompany: Company | null = null;
+  dashboardData: DashboardResponse | null = null;
+  loading = false;
+  error: string | null = null;
+
   stats: Stats | null = null;
   companies: Company[] = [];
   allArticles: NewsArticle[] = [];
-  selectedCompany: Company | null = null;
   lenderDropdownOpen = false;
   lenderSearch = '';
   topArticles: NewsArticle[] = [];
@@ -378,6 +451,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   currentSlideIndex = 0;
   private carouselTimer: any = null;
+  private filterSubject$ = new Subject<DashboardFilter>();
+  private destroy$ = new Subject<void>();
 
   get activeSlides(): CarouselSlide[] {
     const slides = this.appearanceService.carousel?.slides || [];
@@ -394,26 +469,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.getUserProfile();
   }
 
-  selectedPeriod: 'MTD' | 'QTD' | 'CFY' = 'MTD';
+  get displayTitle(): string {
+    return this.selectedCompany ? this.selectedCompany.name : 'Every Lender';
+  }
 
-  getPeriodStartDate(period: 'MTD' | 'QTD' | 'CFY'): Date {
-    const now = new Date();
-    if (period === 'MTD') {
-      return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  get displayTotal(): number {
+    return this.dashboardData?.summary?.totalArticles ?? this.stats?.total ?? this.filteredArticles.length;
+  }
+
+  get displayCritical(): number {
+    return this.displayImpactCount('Critical');
+  }
+
+  get displayHigh(): number {
+    return this.displayImpactCount('High');
+  }
+
+  get displayLendersCount(): number {
+    if (this.selectedCompany) return 1;
+    return this.dashboardData?.summary?.lendersTracked ?? (this.companies.filter((c) => c.active).length || 0);
+  }
+
+  get displayLendersSub(): string {
+    if (this.selectedCompany) {
+      return this.selectedCompany.sector || 'Selected Lender';
     }
-    if (period === 'QTD') {
-      const qMonth = Math.floor(now.getMonth() / 3) * 3;
-      return new Date(now.getFullYear(), qMonth, 1, 0, 0, 0, 0);
-    }
-    if (period === 'CFY') {
-      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      return new Date(fyYear, 3, 1, 0, 0, 0, 0);
-    }
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    return 'Active Portfolios';
   }
 
   get periodArticles(): NewsArticle[] {
-    const startDate = this.getPeriodStartDate(this.selectedPeriod);
+    const range = getDateRange(this.selectedPeriod);
+    const startDate = new Date(range.startDate);
     const filtered = this.allArticles.filter((a) => {
       if (!a.publishedAt) return true;
       return new Date(a.publishedAt) >= startDate;
@@ -428,43 +514,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get totalArticlesCount(): number {
-    return this.periodArticles.length;
-  }
-
-  get displayTotal(): number {
-    return this.filteredArticles.length;
-  }
-
-  setPeriod(p: 'MTD' | 'QTD' | 'CFY') {
-    this.selectedPeriod = p;
-    this.api.newsStats(this.selectedPeriod).subscribe({
-      next: (s) => (this.stats = s),
-      error: () => { }
-    });
-  }
-
-  get displayTitle(): string {
-    return this.selectedCompany ? this.selectedCompany.name : 'Every Lender';
-  }
-
-  get displayCritical(): number {
-    return this.displayImpactCount('Critical');
-  }
-
-  get displayHigh(): number {
-    return this.displayImpactCount('High');
-  }
-
-  get displayLendersCount(): number {
-    if (this.selectedCompany) return 1;
-    return this.companies.filter(c => c.active).length || 0;
-  }
-
-  get displayLendersSub(): string {
-    if (this.selectedCompany) {
-      return this.selectedCompany.sector || 'Selected Lender';
-    }
-    return 'Active Portfolios';
+    return this.dashboardData?.summary?.totalArticles ?? this.periodArticles.length;
   }
 
   get filteredCompanies(): Company[] {
@@ -482,6 +532,183 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (countB !== countA) return countB - countA;
       return a.name.localeCompare(b.name);
     });
+  }
+
+  ngOnInit() {
+    this.setupDashboardFilterStream();
+
+    // Load lender list for dropdown
+    this.api.listCompanies().subscribe((comps) => {
+      this.companies = (comps || []).sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    // Optional background articles for extra details
+    this.api.listNews({ limit: '200' }).subscribe({
+      next: (r) => (this.allArticles = r.items || []),
+      error: () => {}
+    });
+
+    this.api.listNews({ impactLevel: 'High', limit: '5' }).subscribe({
+      next: (r) => {
+        this.topArticles = r.items;
+        if (this.topArticles.length < 5) {
+          this.api.listNews({ impactLevel: 'Critical', limit: '5' }).subscribe((rc) => {
+            this.topArticles = [...rc.items, ...this.topArticles].slice(0, 5);
+          });
+        }
+      },
+      error: () => {}
+    });
+
+    this.startCarouselTimer();
+
+    // Initial load: MTD, Every Lender
+    this.selectedPeriod = 'MTD';
+    this.selectedCompany = null;
+    this.selectedLender = 'ALL';
+    this.triggerDashboardLoad();
+  }
+
+  ngOnDestroy() {
+    if (this.carouselTimer) {
+      clearInterval(this.carouselTimer);
+    }
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupDashboardFilterStream() {
+    this.filterSubject$.pipe(
+      distinctUntilChanged((prev, curr) =>
+        prev.period === curr.period &&
+        prev.startDate === curr.startDate &&
+        prev.endDate === curr.endDate &&
+        prev.lenderId === curr.lenderId
+      ),
+      tap(() => {
+        this.loading = true;
+        this.error = null;
+      }),
+      switchMap((filter) => {
+        return this.api.getDashboardData(filter).pipe(
+          catchError((err) => {
+            this.error = err?.error?.error || err?.message || 'Failed to load dashboard data. Please try again.';
+            this.loading = false;
+            return of(null);
+          })
+        );
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe((res) => {
+      this.loading = false;
+      if (res) {
+        this.dashboardData = res;
+        this.stats = {
+          window: res.period,
+          total: res.summary.totalArticles,
+          byImpact: res.byImpact || [
+            { _id: 'Critical', count: res.summary.critical },
+            { _id: 'High', count: res.summary.high },
+            { _id: 'Medium', count: res.summary.medium },
+            { _id: 'Low', count: res.summary.low }
+          ],
+          byRisk: res.byRisk || (res.categories || []).map((c) => ({ _id: c.category, count: c.count })),
+          topCompanies: res.topCompanies || (res.topMentionedLenders || []).map((l) => ({
+            _id: l.lenderName || l.name || l.lenderId,
+            name: l.lenderName || l.name || l.lenderId,
+            count: l.count
+          }))
+        };
+      }
+    });
+  }
+
+  triggerDashboardLoad() {
+    const range = getDateRange(this.selectedPeriod);
+    const lenderId = this.selectedCompany ? (this.selectedCompany._id || this.selectedCompany.name) : 'ALL';
+    this.selectedLender = lenderId;
+    this.filterSubject$.next({
+      period: this.selectedPeriod,
+      startDate: range.startDate,
+      endDate: range.endDate,
+      lenderId
+    });
+  }
+
+  retryLoad() {
+    this.error = null;
+    const range = getDateRange(this.selectedPeriod);
+    const lenderId = this.selectedCompany ? (this.selectedCompany._id || this.selectedCompany.name) : 'ALL';
+    this.loading = true;
+    this.api.getDashboardData({
+      period: this.selectedPeriod,
+      startDate: range.startDate,
+      endDate: range.endDate,
+      lenderId
+    }).pipe(
+      catchError((err) => {
+        this.error = err?.error?.error || err?.message || 'Failed to load dashboard data. Please try again.';
+        this.loading = false;
+        return of(null);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe((res) => {
+      this.loading = false;
+      if (res) {
+        this.dashboardData = res;
+        this.stats = {
+          window: res.period,
+          total: res.summary.totalArticles,
+          byImpact: res.byImpact || [],
+          byRisk: res.byRisk || [],
+          topCompanies: res.topCompanies || []
+        };
+      }
+    });
+  }
+
+  setPeriod(p: DashboardPeriod) {
+    if (this.selectedPeriod === p && this.dashboardData) return;
+    this.selectedPeriod = p;
+    this.triggerDashboardLoad();
+  }
+
+  selectCompany(c: Company | null) {
+    this.selectedCompany = c;
+    this.selectedLender = c ? (c._id || c.name) : 'ALL';
+    this.lenderDropdownOpen = false;
+    this.lenderSearch = '';
+    this.triggerDashboardLoad();
+  }
+
+  clearSelectedCompany(event: Event) {
+    event.stopPropagation();
+    this.selectCompany(null);
+  }
+
+  onLenderRowClick(companyName: string) {
+    if (this.isSelectedLender(companyName)) {
+      this.selectCompany(null);
+    } else {
+      const found = this.companies.find((c) => c.name.toLowerCase().trim() === companyName.toLowerCase().trim()) || {
+        name: companyName
+      };
+      this.selectCompany(found);
+    }
+  }
+
+  isSelectedLender(companyName: string): boolean {
+    if (!this.selectedCompany) return false;
+    return this.selectedCompany.name.toLowerCase().trim() === companyName.toLowerCase().trim();
+  }
+
+  toggleLenderDropdown(event: Event) {
+    event.stopPropagation();
+    this.lenderDropdownOpen = !this.lenderDropdownOpen;
+    if (this.lenderDropdownOpen) {
+      this.userDropdownOpen = false;
+      this.lenderSearch = '';
+    }
   }
 
   toggleUserDropdown(event: Event) {
@@ -502,98 +729,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.authService.logout();
   }
 
-  toggleLenderDropdown(event: Event) {
-    event.stopPropagation();
-    this.lenderDropdownOpen = !this.lenderDropdownOpen;
-    if (this.lenderDropdownOpen) {
-      this.userDropdownOpen = false;
-      this.lenderSearch = '';
-    }
-  }
-
-  selectCompany(c: Company | null) {
-    this.selectedCompany = c;
-    this.lenderDropdownOpen = false;
-    this.lenderSearch = '';
-  }
-
-  clearSelectedCompany(event: Event) {
-    event.stopPropagation();
-    this.selectedCompany = null;
-  }
-
-  isSelectedLender(companyName: string): boolean {
-    if (!this.selectedCompany) return false;
-    return this.selectedCompany.name.toLowerCase().trim() === companyName.toLowerCase().trim();
-  }
-
-  onLenderRowClick(companyName: string) {
-    if (this.isSelectedLender(companyName)) {
-      this.selectedCompany = null;
-    } else {
-      const found = this.companies.find((c) => c.name.toLowerCase().trim() === companyName.toLowerCase().trim()) || {
-        name: companyName
-      };
-      this.selectedCompany = found;
-    }
-  }
-
-  getNewsLink(params: Record<string, string>): any[] {
-    const p: Record<string, string> = { ...params };
-    if (this.selectedCompany) {
-      p['company'] = this.selectedCompany.name;
-    }
-    if (this.selectedPeriod) {
-      p['period'] = this.selectedPeriod;
-    }
-    return Object.keys(p).length ? ['/news', p] : ['/news'];
-  }
-
-  matchesCompany(article: NewsArticle, company: Company): boolean {
-    if (!company) return true;
-    const companyId = company._id;
-    const companyName = company.name?.toLowerCase().trim();
-
-    if (article.company) {
-      if (typeof article.company === 'string' && companyId && article.company === companyId) {
-        return true;
-      }
-      if (typeof article.company === 'object' && companyId && (article.company as Company)._id === companyId) {
-        return true;
-      }
-    }
-    if (article.companyName && companyName) {
-      const artCompName = article.companyName.toLowerCase().trim();
-      if (artCompName === companyName) {
-        return true;
-      }
-      if (company.aliases && company.aliases.some((alias) => alias.toLowerCase().trim() === artCompName)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  getArticleImpact(a: NewsArticle): string {
-    const eff = (a as any).effectiveClassification || {};
-    const c = a.classification || eff || {};
-    const u = a.userOverride;
-    if (u && u.overriddenAt && u.impactLevel) {
-      return u.impactLevel;
-    }
-    return c.impactLevel || eff.impactLevel || 'Low';
-  }
-
-  getCompanyArticleCount(c: Company): number {
-    if (this.filteredArticles.length || this.periodArticles.length) {
-      return this.periodArticles.filter((a) => this.matchesCompany(a, c)).length;
-    }
-    const item = this.stats?.topCompanies?.find((tc) =>
-      tc._id.toLowerCase() === c.name.toLowerCase() || tc.name?.toLowerCase() === c.name.toLowerCase()
-    );
-    return item ? item.count : 0;
-  }
-
   @HostListener('document:click')
   onDocumentClick() {
     if (this.userDropdownOpen) {
@@ -611,32 +746,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     if (this.lenderDropdownOpen) {
       this.lenderDropdownOpen = false;
-    }
-  }
-
-  ngOnInit() {
-    this.selectedPeriod = 'MTD';
-    this.api.newsStats(this.selectedPeriod).subscribe((s) => (this.stats = s));
-    this.api.listCompanies().subscribe((comps) => {
-      this.companies = (comps || []).sort((a, b) => a.name.localeCompare(b.name));
-    });
-    this.api.listNews({ limit: '200' }).subscribe((r) => {
-      this.allArticles = r.items || [];
-    });
-    this.api.listNews({ impactLevel: 'High', limit: '5' }).subscribe((r) => {
-      this.topArticles = r.items;
-      if (this.topArticles.length < 5) {
-        this.api.listNews({ impactLevel: 'Critical', limit: '5' }).subscribe((rc) => {
-          this.topArticles = [...rc.items, ...this.topArticles].slice(0, 5);
-        });
-      }
-    });
-    this.startCarouselTimer();
-  }
-
-  ngOnDestroy() {
-    if (this.carouselTimer) {
-      clearInterval(this.carouselTimer);
     }
   }
 
@@ -675,10 +784,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   displayImpactCount(level: string): number {
-    return this.filteredArticles.filter((a) => this.getArticleImpact(a) === level).length;
+    if (this.dashboardData?.summary) {
+      const s = this.dashboardData.summary;
+      switch (level.toLowerCase()) {
+        case 'critical': return s.critical;
+        case 'high': return s.high;
+        case 'medium': return s.medium;
+        case 'low': return s.low;
+        default: return 0;
+      }
+    }
+    const found = this.stats?.byImpact?.find((i) => i._id.toLowerCase() === level.toLowerCase());
+    if (found) return found.count;
+    return this.filteredArticles.filter((a) => this.getArticleImpact(a).toLowerCase() === level.toLowerCase()).length;
   }
 
   displayRiskCount(typeId: string): number {
+    if (this.dashboardData?.categories?.length) {
+      const found = this.dashboardData.categories.find(
+        (c) => (c.category || c._id || '').toLowerCase() === typeId.toLowerCase()
+      );
+      if (found) return found.count;
+    }
+    const found = this.stats?.byRisk?.find((r) => r._id.toLowerCase() === typeId.toLowerCase());
+    if (found) return found.count;
     return this.filteredArticles.filter((a) => {
       const t = a.userOverride?.riskType || a.classification?.riskType || 'none';
       return t.toLowerCase() === typeId.toLowerCase();
@@ -686,22 +815,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get displayTopCompanies(): { _id: string; name: string; count: number }[] {
-    const counts: Record<string, number> = {};
-    const articles = this.filteredArticles;
-    if (articles && articles.length > 0) {
-      articles.forEach((a) => {
-        const name = a.companyName || (typeof a.company === 'object' ? (a.company as Company)?.name : '') || '';
-        if (name) {
-          counts[name] = (counts[name] || 0) + 1;
-        }
-      });
-      const res = Object.keys(counts)
-        .map((k) => ({ _id: k, name: k, count: counts[k] }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 8);
-      if (res.length > 0) return res;
+    if (this.dashboardData?.topMentionedLenders && this.dashboardData.topMentionedLenders.length) {
+      return this.dashboardData.topMentionedLenders.map((l) => ({
+        _id: l.lenderName || l.name || l.lenderId,
+        name: l.lenderName || l.name || l.lenderId,
+        count: l.count
+      }));
     }
-    return this.stats?.topCompanies || [];
+    if (this.stats?.topCompanies && this.stats.topCompanies.length) {
+      return this.stats.topCompanies.map((t) => ({
+        _id: t.name || t._id,
+        name: t.name || t._id,
+        count: t.count
+      }));
+    }
+    return [];
   }
 
   barWidth(count: number): number {
@@ -719,7 +847,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getImpactChartData() {
-    if (!this.stats && !this.allArticles.length) return [];
     const levels = ['Low', 'Medium', 'High', 'Critical'];
     const counts = levels.map((lvl) => this.displayImpactCount(lvl));
     const niceMax = this.impactAxis.niceMax;
@@ -787,36 +914,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get maxRiskCount(): number {
-    let data = [];
-    if (this.selectedCompany) {
-      const counts: Record<string, number> = {};
-      this.filteredArticles.forEach(a => {
-        const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
-        counts[type] = (counts[type] || 0) + 1;
-      });
-      data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
-    } else {
-      data = this.stats?.byRisk || [];
-    }
-    return Math.max(...data.map(d => d.count), 1);
+    const list = this.dashboardData?.categories?.length
+      ? this.dashboardData.categories
+      : (this.stats?.byRisk || []);
+    return Math.max(...list.map((d) => d.count), 1);
   }
 
   getRiskChartData() {
-    let data = [];
-    if (this.selectedCompany) {
-      const counts: Record<string, number> = {};
-      this.filteredArticles.forEach(a => {
-        const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
-        counts[type] = (counts[type] || 0) + 1;
-      });
-      data = Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
-    } else {
-      data = this.stats?.byRisk || [];
+    let data: { _id: string; count: number }[] = [];
+    if (this.dashboardData?.categories && this.dashboardData.categories.length) {
+      data = this.dashboardData.categories.map((c) => ({
+        _id: c.category || c._id || 'none',
+        count: c.count
+      }));
+    } else if (this.stats?.byRisk) {
+      data = this.stats.byRisk;
     }
 
     if (!data.length) return [];
 
-    // sort by count descending and take top 4
     data = data.slice().sort((a, b) => b.count - a.count).slice(0, 4);
 
     const total = this.displayTotal || 1;
@@ -829,7 +945,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const totalWidth = 400;
       const spacing = totalWidth / Math.max(1, data.length);
       const x = 45 + (spacing / 2) + (i * spacing) - 22;
-
       const y = 100 - barH;
 
       return {
@@ -847,5 +962,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const data = this.getRiskChartData();
     if (!data.length) return '';
     return data.map((d) => `${d.x + 22},${d.y}`).join(' ');
+  }
+
+  getNewsLink(params: Record<string, string>): any[] {
+    const p: Record<string, string> = { ...params };
+    if (this.selectedCompany) {
+      p['company'] = this.selectedCompany.name;
+    }
+    if (this.selectedPeriod) {
+      p['period'] = this.selectedPeriod;
+    }
+    return Object.keys(p).length ? ['/news', p] : ['/news'];
+  }
+
+  matchesCompany(article: NewsArticle, company: Company): boolean {
+    if (!company) return true;
+    const companyId = company._id;
+    const companyName = company.name?.toLowerCase().trim();
+
+    if (article.company) {
+      if (typeof article.company === 'string' && companyId && article.company === companyId) {
+        return true;
+      }
+      if (typeof article.company === 'object' && companyId && (article.company as Company)._id === companyId) {
+        return true;
+      }
+    }
+    if (article.companyName && companyName) {
+      const artCompName = article.companyName.toLowerCase().trim();
+      if (artCompName === companyName) {
+        return true;
+      }
+      if (company.aliases && company.aliases.some((alias) => alias.toLowerCase().trim() === artCompName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getArticleImpact(a: NewsArticle): string {
+    const eff = (a as any).effectiveClassification || {};
+    const c = a.classification || eff || {};
+    const u = a.userOverride;
+    if (u && u.overriddenAt && u.impactLevel) {
+      return u.impactLevel;
+    }
+    return c.impactLevel || eff.impactLevel || 'Low';
+  }
+
+  getCompanyArticleCount(c: Company): number {
+    const top = this.displayTopCompanies.find(
+      (tc) => tc._id.toLowerCase() === c.name.toLowerCase() || tc.name.toLowerCase() === c.name.toLowerCase()
+    );
+    if (top) return top.count;
+    if (this.allArticles.length) {
+      return this.allArticles.filter((a) => this.matchesCompany(a, c)).length;
+    }
+    return 0;
   }
 }

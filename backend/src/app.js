@@ -12,6 +12,7 @@ const news = require('./routes/news');
 const recipients = require('./routes/recipients');
 const runs = require('./routes/runs');
 const config = require('./routes/config');
+const dashboard = require('./routes/dashboard');
 
 function createApp() {
   const app = express();
@@ -34,6 +35,7 @@ function createApp() {
     });
   });
 
+  app.use('/api/dashboard', dashboard);
   app.use('/api/companies', companies);
   app.use('/api/news', news);
   app.use('/api/recipients', recipients);

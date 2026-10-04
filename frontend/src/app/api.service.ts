@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../environments/environment';
-import { Company, Recipient, NewsArticle, Stats, RunLog, UserOverride, Configuration } from './models';
+import { Company, Recipient, NewsArticle, Stats, RunLog, UserOverride, Configuration, DashboardFilter, DashboardResponse } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -54,6 +54,71 @@ export class ApiService {
       `${this.base}/news${search ? '?' + search : ''}`
     );
   }
+
+  getDashboardData(filter: DashboardFilter): Observable<DashboardResponse> {
+    const params: Record<string, string> = {
+      period: filter.period,
+      startDate: filter.startDate,
+      endDate: filter.endDate,
+      lenderId: filter.lenderId || 'ALL'
+    };
+    return this.http.get<DashboardResponse>(`${this.base}/dashboard`, { params }).pipe(
+      catchError((err: HttpErrorResponse) => {
+        // If /dashboard endpoint is not yet deployed on remote server (404), seamlessly fallback to /news/stats
+        if (err.status === 404) {
+          const statsParams: Record<string, string> = {
+            period: filter.period,
+            startDate: filter.startDate,
+            endDate: filter.endDate,
+            lenderId: filter.lenderId || 'ALL'
+          };
+          const qs = new URLSearchParams(statsParams).toString();
+          return this.http.get<Stats>(`${this.base}/news/stats?${qs}`).pipe(
+            map((stats) => {
+              const critical = stats.byImpact?.find((i) => i._id.toLowerCase() === 'critical')?.count || 0;
+              const high = stats.byImpact?.find((i) => i._id.toLowerCase() === 'high')?.count || 0;
+              const medium = stats.byImpact?.find((i) => i._id.toLowerCase() === 'medium')?.count || 0;
+              const low = stats.byImpact?.find((i) => i._id.toLowerCase() === 'low')?.count || 0;
+
+              return {
+                period: filter.period,
+                startDate: filter.startDate,
+                endDate: filter.endDate,
+                lenderId: filter.lenderId || 'ALL',
+                summary: {
+                  totalArticles: stats.total || 0,
+                  critical,
+                  high,
+                  medium,
+                  low,
+                  lendersTracked: filter.lenderId && filter.lenderId !== 'ALL' ? 1 : (stats.topCompanies?.length || 0)
+                },
+                categories: (stats.byRisk || []).map((r) => ({
+                  _id: r._id,
+                  category: r._id,
+                  count: r.count
+                })),
+                topMentionedLenders: (stats.topCompanies || []).map((c) => ({
+                  _id: c.name || c._id,
+                  name: c.name || c._id,
+                  lenderId: c.name || c._id,
+                  lenderName: c.name || c._id,
+                  count: c.count
+                })),
+                window: stats.window || filter.period,
+                total: stats.total || 0,
+                byImpact: stats.byImpact || [],
+                byRisk: stats.byRisk || [],
+                topCompanies: stats.topCompanies || []
+              };
+            })
+          );
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
   newsStats(period?: string): Observable<Stats> {
     const url = period ? `${this.base}/news/stats?period=${period}` : `${this.base}/news/stats`;
     return this.http.get<Stats>(url);

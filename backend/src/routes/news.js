@@ -1,25 +1,9 @@
-﻿const express = require('express');
+const express = require('express');
+const mongoose = require('mongoose');
 const NewsArticle = require('../models/NewsArticle');
+const { getDateRange, getPeriodStartDate } = require('../utils/datePeriod');
 
 const router = express.Router();
-
-function getPeriodStartDate(period = 'MTD') {
-  const now = new Date();
-  const p = (period || 'MTD').toUpperCase();
-  if (p === 'MTD') {
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  }
-  if (p === 'QTD') {
-    const qMonth = Math.floor(now.getMonth() / 3) * 3;
-    return new Date(now.getFullYear(), qMonth, 1, 0, 0, 0, 0);
-  }
-  if (p === 'CFY') {
-    // Current Financial Year (India: April 1 - March 31)
-    const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-    return new Date(fyYear, 3, 1, 0, 0, 0, 0);
-  }
-  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-}
 
 router.get('/', async (req, res, next) => {
   try {
@@ -52,13 +36,26 @@ router.get('/', async (req, res, next) => {
 
 router.get('/stats', async (req, res, next) => {
   try {
-    const period = (req.query.period || 'MTD').toUpperCase();
-    const startDate = getPeriodStartDate(period);
+    const { period = 'MTD', startDate, endDate, lenderId, company } = req.query;
+    const range = getDateRange(period, startDate, endDate);
+    const targetLender = lenderId || company;
 
     const baseMatch = {
       'classification.riskType': { $ne: 'none' },
-      publishedAt: { $gte: startDate }
+      publishedAt: { $gte: range.startDateTime, $lte: range.endDateTime }
     };
+
+    if (targetLender && targetLender.toUpperCase() !== 'ALL') {
+      if (mongoose.Types.ObjectId.isValid(targetLender)) {
+        baseMatch.$or = [
+          { company: new mongoose.Types.ObjectId(targetLender) },
+          { companyName: targetLender }
+        ];
+      } else {
+        baseMatch.companyName = { $regex: new RegExp(`^${targetLender.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') };
+      }
+    }
+
     const classifiedMatch = {
       classificationStatus: 'classified',
       ...baseMatch
@@ -83,7 +80,9 @@ router.get('/stats', async (req, res, next) => {
     ]);
 
     res.json({
-      window: period,
+      window: range.period,
+      startDate: range.startDate,
+      endDate: range.endDate,
       total: recentCount,
       byImpact,
       byRisk,
