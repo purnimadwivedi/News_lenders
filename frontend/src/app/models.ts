@@ -169,6 +169,17 @@ export interface DashboardCategory {
   _id?: string;
   category: string;
   count: number;
+  critical?: number;
+  high?: number;
+  medium?: number;
+  low?: number;
+  byImpact?: {
+    critical?: number;
+    high?: number;
+    medium?: number;
+    low?: number;
+    [key: string]: number | undefined;
+  };
 }
 
 export interface DashboardTopLender {

@@ -99,7 +99,7 @@ export class ExportService {
         5: { cellWidth: 100, textColor: [100, 116, 139] },
         6: { cellWidth: 68 }
       },
-      didParseCell: (data) => {
+      didParseCell: (data: any) => {
         if (data.section === 'body' && data.column.index === 2) {
           const [bg, fg] = IMPACT_COLORS[String(data.cell.raw)] || IMPACT_COLORS['Low'];
           data.cell.styles.fillColor = bg;
@@ -110,7 +110,7 @@ export class ExportService {
         }
       },
       // Make the whole title cell a clickable link to the article.
-      didDrawCell: (data) => {
+      didDrawCell: (data: any) => {
         if (data.section !== 'body' || data.column.index !== 1) return;
         const url = urlByRow.get(data.row.raw);
         if (url) doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url });

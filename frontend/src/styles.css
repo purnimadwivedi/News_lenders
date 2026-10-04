@@ -2053,7 +2053,7 @@ tr:hover td { background: #f8fafc; }
   background: #ffffff;
   border: 1px solid #eef2f6;
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 12px 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
@@ -2087,20 +2087,33 @@ tr:hover td { background: #f8fafc; }
   background: var(--app-primary, #f37819);
   color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 11px;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 11.5px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-pill-outline {
   background: transparent;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 11px;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 11.5px;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tab-pill-outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #1e293b;
 }
 
 /* Compact Left Impact Distribution & Right Lenders List */
@@ -2140,8 +2153,8 @@ tr:hover td { background: #f8fafc; }
   font-size: 12.5px;
   font-weight: 600;
   color: #1e293b;
-  min-width: 110px;
-  max-width: 170px;
+  min-width: 145px;
+  max-width: 195px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2167,12 +2180,14 @@ tr:hover td { background: #f8fafc; }
 .dash-bar-track.blue-theme {
   background: #e0f2fe;
   height: 9px;
+  border-radius: 6px;
 }
 
 .dash-fill-blue {
-  background: #458eb9;
+  background: #2b7fb8;
   height: 100%;
-  border-radius: 5px;
+  border-radius: 6px;
+  min-width: 9px;
   transition: width 0.4s ease;
 }
 
@@ -2233,6 +2248,14 @@ tr:hover td { background: #f8fafc; }
   align-items: center;
   gap: 6px;
   cursor: pointer;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .legend-swatch-orange {

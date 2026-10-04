@@ -256,35 +256,103 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
         <div class="dash-graph-container" style="height: 120px;">
           <svg class="dash-svg-chart" viewBox="0 0 490 120" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block;">
             <defs>
-              <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#3b82f6" />
-                <stop offset="100%" stop-color="#1d4ed8" />
-              </linearGradient>
+              <clipPath *ngFor="let d of getRiskChartData(); let idx = index" [attr.id]="'cat-bar-clip-' + idx">
+                <rect [attr.x]="d.x" [attr.y]="d.y" width="40" [attr.height]="d.barH" rx="4" />
+              </clipPath>
             </defs>
 
             <!-- Y Axis & Grid Lines -->
-            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle" fill="#2563eb">{{ 'count' | t }}</text>
+            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle" fill="#f37819" font-size="9" font-weight="700" letter-spacing="0.5">{{ 'count' | t }}</text>
 
             <ng-container *ngFor="let tick of riskAxis.ticks">
               <text x="38" [attr.y]="100 - (tick / riskAxis.niceMax) * 75 + 3" text-anchor="end" fill="#94a3b8" font-size="9">{{ tick }}</text>
+              <line *ngIf="tick > 0"
+                    x1="45" [attr.y1]="100 - (tick / riskAxis.niceMax) * 75"
+                    x2="480" [attr.y2]="100 - (tick / riskAxis.niceMax) * 75"
+                    stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
+              <line *ngIf="tick === 0"
+                    x1="45" y1="100"
+                    x2="480" y2="100"
+                    stroke="#cbd5e1" stroke-width="1.2" />
             </ng-container>
 
-            <!-- Vertical Bars for Each Category -->
-            <g *ngFor="let d of getRiskChartData()">
-              <rect
-                [attr.x]="d.x"
-                [attr.y]="d.y"
-                width="44"
-                [attr.height]="d.barH"
-                rx="5"
-                fill="url(#barBlue)"
-                class="svg-bar hand-cursor"
-                [routerLink]="getNewsLink({ riskType: d.id })"
-              />
-              <text [attr.x]="d.x + 22" [attr.y]="d.y - 4" text-anchor="middle" fill="#2563eb" font-size="10" font-weight="800">
+            <!-- Stacked Bars for Each Category: Critical, High, Medium, Low -->
+            <g *ngFor="let d of getRiskChartData(); let idx = index">
+              <!-- Rounded Clip Container for Stacked Segments -->
+              <g [attr.clip-path]="'url(#cat-bar-clip-' + idx + ')'">
+                <!-- Critical Segment (Red) -->
+                <rect *ngIf="d.seg.hCrit > 0"
+                      [attr.x]="d.x"
+                      [attr.y]="d.seg.yCrit"
+                      width="40"
+                      [attr.height]="d.seg.hCrit"
+                      fill="#ef4444"
+                      class="svg-bar hand-cursor"
+                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Critical' })">
+                  <title>{{ d.id }} - Critical: {{ d.critical }}</title>
+                </rect>
+
+                <!-- High Segment (Orange) -->
+                <rect *ngIf="d.seg.hHigh > 0"
+                      [attr.x]="d.x"
+                      [attr.y]="d.seg.yHigh"
+                      width="40"
+                      [attr.height]="d.seg.hHigh"
+                      fill="#ea580c"
+                      class="svg-bar hand-cursor"
+                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'High' })">
+                  <title>{{ d.id }} - High: {{ d.high }}</title>
+                </rect>
+
+                <!-- Medium Segment (Amber) -->
+                <rect *ngIf="d.seg.hMed > 0"
+                      [attr.x]="d.x"
+                      [attr.y]="d.seg.yMed"
+                      width="40"
+                      [attr.height]="d.seg.hMed"
+                      fill="#f59e0b"
+                      class="svg-bar hand-cursor"
+                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Medium' })">
+                  <title>{{ d.id }} - Medium: {{ d.medium }}</title>
+                </rect>
+
+                <!-- Low Segment (Green) -->
+                <rect *ngIf="d.seg.hLow > 0"
+                      [attr.x]="d.x"
+                      [attr.y]="d.seg.yLow"
+                      width="40"
+                      [attr.height]="d.seg.hLow"
+                      fill="#10b981"
+                      class="svg-bar hand-cursor"
+                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Low' })">
+                  <title>{{ d.id }} - Low: {{ d.low }}</title>
+                </rect>
+              </g>
+
+              <!-- Category Total Count Value on Top -->
+              <text [attr.x]="d.x + 20"
+                    [attr.y]="d.y - 4"
+                    text-anchor="middle"
+                    fill="#1e293b"
+                    font-size="10"
+                    font-weight="800"
+                    class="hand-cursor"
+                    [routerLink]="getNewsLink({ riskType: d.id })"
+                    [title]="d.id + ': ' + d.count + ' total articles'">
                 {{ d.count }}
               </text>
-              <text [attr.x]="d.x + 22" y="114" text-anchor="middle" fill="#334155" font-size="10.5" font-weight="700" style="text-transform: capitalize;">
+
+              <!-- Category Label Below Baseline -->
+              <text [attr.x]="d.x + 20"
+                    y="114"
+                    text-anchor="middle"
+                    fill="#334155"
+                    font-size="10.5"
+                    font-weight="700"
+                    style="text-transform: capitalize;"
+                    class="hand-cursor"
+                    [routerLink]="getNewsLink({ riskType: d.id })"
+                    [title]="'Filter by ' + d.id">
                 {{ d.id }}
               </text>
             </g>
@@ -295,11 +363,23 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
           </svg>
         </div>
 
-        <!-- Legend -->
-        <div class="chart-legend">
-          <div class="legend-item">
-            <span class="legend-swatch-orange" style="background: #3b82f6;"></span>
-            <span>{{ 'articlesCount' | t }}</span>
+        <!-- Legend: Low, Medium, High, Critical -->
+        <div class="chart-legend" style="gap: 16px; margin-top: 8px;">
+          <div class="legend-item hand-cursor" [routerLink]="getNewsLink({ impact: 'Critical' })" title="Filter Critical articles">
+            <span class="legend-swatch" style="background: #ef4444;"></span>
+            <span>{{ 'critical' | t }}</span>
+          </div>
+          <div class="legend-item hand-cursor" [routerLink]="getNewsLink({ impact: 'High' })" title="Filter High articles">
+            <span class="legend-swatch" style="background: #ea580c;"></span>
+            <span>{{ 'high' | t }}</span>
+          </div>
+          <div class="legend-item hand-cursor" [routerLink]="getNewsLink({ impact: 'Medium' })" title="Filter Medium articles">
+            <span class="legend-swatch" style="background: #f59e0b;"></span>
+            <span>{{ 'medium' | t }}</span>
+          </div>
+          <div class="legend-item hand-cursor" [routerLink]="getNewsLink({ impact: 'Low' })" title="Filter Low articles">
+            <span class="legend-swatch" style="background: #10b981;"></span>
+            <span>{{ 'low' | t }}</span>
           </div>
         </div>
       </div>
@@ -430,7 +510,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   public appearanceService = inject(AppearanceService);
 
-  selectedPeriod: DashboardPeriod = 'MTD';
+  selectedPeriod: DashboardPeriod = 'CFY';
   selectedLender = 'ALL';
   selectedCompany: Company | null = null;
   dashboardData: DashboardResponse | null = null;
@@ -465,86 +545,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.getUserProfile();
   }
 
-  selectedPeriod: 'MTD' | 'QTD' | 'CFY' = 'CFY';
-
-  getPeriodStartDate(period: 'MTD' | 'QTD' | 'CFY'): Date {
-    const now = new Date();
-    if (period === 'MTD') {
-      return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    }
-    if (period === 'QTD') {
-      const qMonth = Math.floor(now.getMonth() / 3) * 3;
-      return new Date(now.getFullYear(), qMonth, 1, 0, 0, 0, 0);
-    }
-    if (period === 'CFY') {
-      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-      return new Date(fyYear, 3, 1, 0, 0, 0, 0);
-    }
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  }
-
-  get periodArticles(): NewsArticle[] {
-    const startDate = this.getPeriodStartDate(this.selectedPeriod);
-    return this.allArticles.filter((a) => !!a.publishedAt && new Date(a.publishedAt) >= startDate);
-  }
-
-  get filteredArticles(): NewsArticle[] {
-    const base = this.periodArticles;
-    if (!this.selectedCompany) return base;
-    return base.filter((a) => this.matchesCompany(a, this.selectedCompany!));
-  }
-
-  get totalArticlesCount(): number {
-    return this.periodArticles.length;
+  get displayTitle(): string {
+    return this.selectedCompany ? this.selectedCompany.name : translate(this.appearanceService.state.display.language, 'everyLender');
   }
 
   get displayTotal(): number {
-    return this.filteredArticles.length;
-  }
-
-  setPeriod(p: 'MTD' | 'QTD' | 'CFY') {
-    if (p === this.selectedPeriod) return;
-    this.selectedPeriod = p;
-    this.loadPeriodData();
-  }
-
-  private loadPeriodData() {
-    const period = this.selectedPeriod;
-    this.api.newsStats(period).subscribe({
-      next: (s) => {
-        if (period === this.selectedPeriod) this.stats = s;
-      },
-      error: () => { }
-    });
-    this.fetchPeriodArticles(period);
-    this.api.listNews({ period, impactLevel: 'High', limit: '5' }).subscribe((r) => {
-      if (period !== this.selectedPeriod) return;
-      this.topArticles = r.items;
-      if (this.topArticles.length < 5) {
-        this.api.listNews({ period, impactLevel: 'Critical', limit: '5' }).subscribe((rc) => {
-          if (period !== this.selectedPeriod) return;
-          this.topArticles = [...rc.items, ...this.topArticles].slice(0, 5);
-        });
-      }
-    });
-  }
-
-  // The API caps a page at 200, so page through until every article in the period is loaded.
-  private fetchPeriodArticles(period: 'MTD' | 'QTD' | 'CFY', acc: NewsArticle[] = []) {
-    this.api.listNews({ period, limit: '200', skip: String(acc.length) }).subscribe((r) => {
-      if (period !== this.selectedPeriod) return;
-      const page = r.items || [];
-      const items = [...acc, ...page];
-      if (page.length && items.length < r.total) {
-        this.fetchPeriodArticles(period, items);
-        return;
-      }
-      this.allArticles = items;
-    });
-  }
-
-  get displayTitle(): string {
-    return this.selectedCompany ? this.selectedCompany.name : translate(this.appearanceService.state.display.language, 'everyLender');
+    return this.dashboardData?.summary?.totalArticles ?? this.stats?.total ?? this.filteredArticles.length;
   }
 
   get displayCritical(): number {
@@ -565,6 +571,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return this.selectedCompany.sector || 'Selected Lender';
     }
     return translate(this.appearanceService.state.display.language, 'activePortfolios');
+  }
+
+  get periodArticles(): NewsArticle[] {
+    const range = getDateRange(this.selectedPeriod);
+    const startDate = new Date(range.startDate);
+    const filtered = this.allArticles.filter((a) => {
+      if (!a.publishedAt) return true;
+      return new Date(a.publishedAt) >= startDate;
+    });
+    return filtered.length > 0 ? filtered : this.allArticles;
+  }
+
+  get filteredArticles(): NewsArticle[] {
+    const base = this.periodArticles;
+    if (!this.selectedCompany) return base;
+    return base.filter((a) => this.matchesCompany(a, this.selectedCompany!));
+  }
+
+  get totalArticlesCount(): number {
+    return this.dashboardData?.summary?.totalArticles ?? this.periodArticles.length;
   }
 
   get filteredCompanies(): Company[] {
@@ -612,8 +638,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.startCarouselTimer();
 
-    // Initial load: MTD, Every Lender
-    this.selectedPeriod = 'MTD';
+    // Initial load: CFY, Every Lender
+    this.selectedPeriod = 'CFY';
     this.selectedCompany = null;
     this.selectedLender = 'ALL';
     this.triggerDashboardLoad();
@@ -747,54 +773,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  getNewsLink(params: Record<string, string>): any[] {
-    const p: Record<string, string> = { ...params };
-    if (this.selectedCompany) {
-      p['company'] = this.selectedCompany.name;
-    }
-    if (this.selectedPeriod) {
-      p['period'] = this.selectedPeriod;
-    }
-    return Object.keys(p).length ? ['/news', p] : ['/news'];
+  isSelectedLender(companyName: string): boolean {
+    if (!this.selectedCompany) return false;
+    return this.selectedCompany.name.toLowerCase().trim() === companyName.toLowerCase().trim();
   }
 
-  matchesCompany(article: NewsArticle, company: Company): boolean {
-    if (!company) return true;
-    const companyId = company._id;
-    const companyName = company.name?.toLowerCase().trim();
-
-    if (article.company) {
-      if (typeof article.company === 'string' && companyId && article.company === companyId) {
-        return true;
-      }
-      if (typeof article.company === 'object' && companyId && (article.company as Company)._id === companyId) {
-        return true;
-      }
+  toggleLenderDropdown(event: Event) {
+    event.stopPropagation();
+    this.lenderDropdownOpen = !this.lenderDropdownOpen;
+    if (this.lenderDropdownOpen) {
+      this.userDropdownOpen = false;
+      this.lenderSearch = '';
     }
-    if (article.companyName && companyName) {
-      const artCompName = article.companyName.toLowerCase().trim();
-      if (artCompName === companyName) {
-        return true;
-      }
-      if (company.aliases && company.aliases.some((alias) => alias.toLowerCase().trim() === artCompName)) {
-        return true;
-      }
-    }
-    return false;
   }
 
-  getArticleImpact(a: NewsArticle): string {
-    const eff = (a as any).effectiveClassification || {};
-    const c = a.classification || eff || {};
-    const u = a.userOverride;
-    if (u && u.overriddenAt && u.impactLevel) {
-      return u.impactLevel;
+  toggleUserDropdown(event: Event) {
+    event.stopPropagation();
+    this.userDropdownOpen = !this.userDropdownOpen;
+    if (this.userDropdownOpen) {
+      this.lenderDropdownOpen = false;
     }
-    return c.impactLevel || eff.impactLevel || 'Low';
   }
 
-  getCompanyArticleCount(c: Company): number {
-    return this.periodArticles.filter((a) => this.matchesCompany(a, c)).length;
+  closeUserDropdown() {
+    this.userDropdownOpen = false;
+  }
+
+  logout(event: Event) {
+    event.stopPropagation();
+    this.userDropdownOpen = false;
+    this.authService.logout();
   }
 
   @HostListener('document:click')
@@ -814,21 +822,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     if (this.lenderDropdownOpen) {
       this.lenderDropdownOpen = false;
-    }
-  }
-
-  ngOnInit() {
-    this.selectedPeriod = 'CFY';
-    this.api.listCompanies().subscribe((comps) => {
-      this.companies = (comps || []).sort((a, b) => a.name.localeCompare(b.name));
-    });
-    this.loadPeriodData();
-    this.startCarouselTimer();
-  }
-
-  ngOnDestroy() {
-    if (this.carouselTimer) {
-      clearInterval(this.carouselTimer);
     }
   }
 
@@ -898,6 +891,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get displayTopCompanies(): { _id: string; name: string; count: number }[] {
+    if (this.dashboardData?.topMentionedLenders?.length) {
+      return this.dashboardData.topMentionedLenders.map((item) => ({
+        _id: item.lenderName || item.name || item._id || item.lenderId,
+        name: item.lenderName || item.name || item._id || item.lenderId,
+        count: item.count
+      })).slice(0, 8);
+    }
+    if (this.stats?.topCompanies?.length) {
+      return this.stats.topCompanies.map((item) => ({
+        _id: item.name || item._id,
+        name: item.name || item._id,
+        count: item.count
+      })).slice(0, 8);
+    }
     const counts: Record<string, number> = {};
     this.filteredArticles.forEach((a) => {
       const name = a.companyName || (typeof a.company === 'object' ? (a.company as Company)?.name : '') || '';
@@ -922,7 +929,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const list = this.displayTopCompanies;
     if (!list || !list.length) return 0;
     const max = Math.max(...list.map((b) => b.count), 1);
-    return (count / max) * 100;
+    return Math.max((count / max) * 100, 2);
   }
 
   getImpactChartData() {
@@ -992,13 +999,160 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.getYAxisTicks(this.maxRiskCount);
   }
 
-  private riskCounts(): { _id: string; count: number }[] {
+  getStackedSegments(d: { count: number; critical: number; high: number; medium: number; low: number; barH: number }) {
+    if (d.count <= 0 || d.barH <= 0) {
+      return {
+        hCrit: 0,
+        hHigh: 0,
+        hMed: 0,
+        hLow: 0,
+        yCrit: 100,
+        yHigh: 100,
+        yMed: 100,
+        yLow: 100
+      };
+    }
+
+    const total = (d.critical + d.high + d.medium + d.low) || d.count || 1;
+    let hCrit = (d.critical / total) * d.barH;
+    let hHigh = (d.high / total) * d.barH;
+    let hMed = (d.medium / total) * d.barH;
+    let hLow = d.barH - (hCrit + hHigh + hMed);
+
+    // Ensure non-zero segments have visible presence if bar is tall enough
+    const nonZero = (d.critical > 0 ? 1 : 0) + (d.high > 0 ? 1 : 0) + (d.medium > 0 ? 1 : 0) + (d.low > 0 ? 1 : 0);
+    if (d.barH >= nonZero * 2) {
+      if (d.critical > 0 && hCrit < 1.5) hCrit = 1.5;
+      if (d.high > 0 && hHigh < 1.5) hHigh = 1.5;
+      if (d.medium > 0 && hMed < 1.5) hMed = 1.5;
+      if (d.low > 0 && hLow < 1.5) hLow = 1.5;
+      const currentSum = hCrit + hHigh + hMed + hLow;
+      if (currentSum > 0) {
+        const factor = d.barH / currentSum;
+        hCrit *= factor;
+        hHigh *= factor;
+        hMed *= factor;
+        hLow = d.barH - (hCrit + hHigh + hMed);
+      }
+    }
+
+    const yLow = 100 - hLow;
+    const yMed = yLow - hMed;
+    const yHigh = yMed - hHigh;
+    const yCrit = 100 - d.barH;
+
+    return {
+      hCrit,
+      hHigh,
+      hMed,
+      hLow,
+      yCrit,
+      yHigh,
+      yMed,
+      yLow
+    };
+  }
+
+  private getCategoryImpactBreakdown(catName: string, totalCount: number, catData?: any): { critical: number; high: number; medium: number; low: number } {
+    if (catData) {
+      const crit = catData.critical ?? catData.byImpact?.critical ?? catData.byImpact?.Critical;
+      const h = catData.high ?? catData.byImpact?.high ?? catData.byImpact?.High;
+      const m = catData.medium ?? catData.byImpact?.medium ?? catData.byImpact?.Medium;
+      const l = catData.low ?? catData.byImpact?.low ?? catData.byImpact?.Low;
+      if (crit !== undefined || h !== undefined || m !== undefined || l !== undefined) {
+        return {
+          critical: crit || 0,
+          high: h || 0,
+          medium: m || 0,
+          low: l || 0
+        };
+      }
+    }
+
+    const catLower = catName.toLowerCase().trim();
+    const catArticles = this.filteredArticles.filter((a) => {
+      const type = a.userOverride?.riskType || a.classification?.riskType || (a as any).category || '';
+      return type.toLowerCase().trim() === catLower;
+    });
+
+    let cCrit = 0;
+    let cHigh = 0;
+    let cMed = 0;
+    let cLow = 0;
+
+    if (catArticles.length > 0) {
+      catArticles.forEach((a) => {
+        const imp = this.getArticleImpact(a).toLowerCase();
+        if (imp === 'critical') cCrit++;
+        else if (imp === 'high') cHigh++;
+        else if (imp === 'medium') cMed++;
+        else cLow++;
+      });
+
+      if (catArticles.length === totalCount) {
+        return { critical: cCrit, high: cHigh, medium: cMed, low: cLow };
+      }
+
+      const scale = totalCount / catArticles.length;
+      const critical = Math.round(cCrit * scale);
+      const high = Math.round(cHigh * scale);
+      const medium = Math.round(cMed * scale);
+      let low = totalCount - (critical + high + medium);
+      if (low < 0) low = 0;
+      return { critical, high, medium, low };
+    }
+
+    const sumCrit = this.displayImpactCount('Critical');
+    const sumHigh = this.displayImpactCount('High');
+    const sumMed = this.displayImpactCount('Medium');
+    const sumLow = this.displayImpactCount('Low');
+    const sumTotal = (sumCrit + sumHigh + sumMed + sumLow) || 1;
+
+    let critical = Math.round((sumCrit / sumTotal) * totalCount);
+    let high = Math.round((sumHigh / sumTotal) * totalCount);
+    let medium = Math.round((sumMed / sumTotal) * totalCount);
+    let low = totalCount - (critical + high + medium);
+    if (low < 0) low = 0;
+
+    return { critical, high, medium, low };
+  }
+
+  private riskCounts(): { _id: string; count: number; critical: number; high: number; medium: number; low: number }[] {
+    if (this.dashboardData?.categories?.length) {
+      return this.dashboardData.categories.map((c) => {
+        const id = c.category || c._id || 'none';
+        const breakdown = this.getCategoryImpactBreakdown(id, c.count, c);
+        return {
+          _id: id,
+          count: c.count,
+          ...breakdown
+        };
+      });
+    }
+    if (this.stats?.byRisk?.length) {
+      return this.stats.byRisk.map((r) => {
+        const id = r._id || 'none';
+        const breakdown = this.getCategoryImpactBreakdown(id, r.count, r);
+        return {
+          _id: id,
+          count: r.count,
+          ...breakdown
+        };
+      });
+    }
     const counts: Record<string, number> = {};
     this.filteredArticles.forEach(a => {
-      const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
+      const type = a.userOverride?.riskType || a.classification?.riskType || (a as any).category || 'none';
       counts[type] = (counts[type] || 0) + 1;
     });
-    return Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
+    return Object.keys(counts).map((k) => {
+      const breakdown = this.getCategoryImpactBreakdown(k, counts[k]);
+      return {
+        _id: k,
+        count: counts[k],
+        ...breakdown
+      };
+    });
   }
 
   get maxRiskCount(): number {
@@ -1022,16 +1176,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const totalWidth = 400;
       const spacing = totalWidth / Math.max(1, data.length);
-      const x = 45 + (spacing / 2) + (i * spacing) - 22;
+      const x = 50 + (spacing / 2) + (i * spacing) - 20;
       const y = 100 - barH;
+
+      const seg = this.getStackedSegments({
+        count: d.count,
+        critical: d.critical,
+        high: d.high,
+        medium: d.medium,
+        low: d.low,
+        barH
+      });
 
       return {
         id: d._id || 'none',
         count: d.count,
+        critical: d.critical,
+        high: d.high,
+        medium: d.medium,
+        low: d.low,
         percent,
         x,
         y,
-        barH
+        barH,
+        seg
       };
     });
   }
