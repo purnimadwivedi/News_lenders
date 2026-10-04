@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../environments/environment';
-import { Company, Recipient, NewsArticle, Stats, RunLog, UserOverride, Configuration, DashboardFilter, DashboardResponse } from './models';
+import { Company, Recipient, NewsArticle, Stats, RunLog, UserOverride, Configuration, DashboardFilter, DashboardResponse, ClassificationAuditHistory } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -134,6 +134,16 @@ export class ApiService {
   }
   clearOverride(id: string): Observable<NewsArticle> {
     return this.http.delete<NewsArticle>(`${this.base}/news/${id}/override`);
+  }
+  getAuditHistory(id: string): Observable<ClassificationAuditHistory[]> {
+    return this.http.get<ClassificationAuditHistory[]>(`${this.base}/news/${id}/audit-history`).pipe(
+      catchError(() => {
+        // Fallback if dedicated endpoint isn't available on remote server
+        return this.getNews(id).pipe(
+          map((article) => (article.auditTrail || []) as ClassificationAuditHistory[])
+        );
+      })
+    );
   }
 
   listRuns(): Observable<RunLog[]> {

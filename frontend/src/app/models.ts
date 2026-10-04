@@ -56,6 +56,30 @@ export interface UserOverride {
   overriddenBy?: string;
 }
 
+export interface ClassificationAuditHistory {
+  id?: string;
+  _id?: string;
+  entityId?: string;
+  fieldName?: string;
+  previousValue?: string;
+  newValue?: string;
+  previousImpact?: string;
+  newImpact?: string;
+  previousRiskType?: string;
+  newRiskType?: string;
+  changedBy?: string;
+  changedAt?: string;
+  performedBy?: string;
+  performedAt?: string;
+  action?: 'initial_classification' | 'override_applied' | 'override_cleared';
+  note?: string;
+  details?: string;
+  title?: string;
+}
+
+export type AuditEntry = ClassificationAuditHistory;
+
+
 export interface ImpactDefinition {
   imgcDefinition: string;
   llmInstructions: string;
@@ -66,6 +90,7 @@ export interface LevelDefinitions {
   Medium: ImpactDefinition;
   High: ImpactDefinition;
   Critical: ImpactDefinition;
+  [key: string]: ImpactDefinition | undefined;
 }
 
 export interface Category {
@@ -93,6 +118,8 @@ export interface Configuration {
   key?: string;
   riskLevelDefinitions?: Record<string, string>;
   impactLevelDefinitions: LevelDefinitions;
+  impactLlmInstructions?: string;
+  categoryLlmInstructions?: string;
   categories: Category[];
   riskTypeDefinitions?: RiskTypeDefinitions;
   extraGuidance?: string;
@@ -118,6 +145,7 @@ export interface NewsArticle {
   classificationStatus?: 'pending' | 'classified' | 'failed' | 'skipped';
   classificationError?: string;
   userOverride?: UserOverride | null;
+  auditTrail?: AuditEntry[];
   emailedImmediate?: boolean;
   includedInDigest?: boolean;
 }

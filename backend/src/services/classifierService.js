@@ -76,7 +76,7 @@ function getClassifierTool(cfg) {
   };
 }
 
-function impactSection(defs) {
+function impactSection(defs, overallLlmInstructions) {
   const levels = ['Low', 'Medium', 'High', 'Critical'];
   const lines = levels.map((l) => {
     const item = defs && defs[l];
@@ -95,7 +95,12 @@ function impactSection(defs) {
     if (!imgc && !llm) text += ` (use general industry judgement)`;
     return text;
   });
-  return `Impact level definitions (how this organisation defines impact on itself):\n${lines.join('\n')}`;
+  let sec = `Impact level definitions (how this organisation defines impact on itself):\n${lines.join('\n')}`;
+  if (defs?.impactLlmInstructions || defs?.llmInstructions) {
+    const inst = (defs.impactLlmInstructions || defs.llmInstructions).trim();
+    if (inst) sec += `\n\nOverall LLM Instructions for Impact Configuration:\n${inst}`;
+  }
+  return sec;
 }
 
 function categorySection(cfg) {

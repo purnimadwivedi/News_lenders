@@ -45,6 +45,8 @@ const ConfigurationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: () => ({})
     },
+    impactLlmInstructions: { type: String, default: '' },
+    categoryLlmInstructions: { type: String, default: '' },
     extraGuidance: { type: String, default: '' },
     updatedBy: { type: String, default: '' }
   },

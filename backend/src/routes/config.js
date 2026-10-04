@@ -3,7 +3,7 @@ const Configuration = require('../models/Configuration');
 
 const router = express.Router();
 
-const ALLOWED = ['impactLevelDefinitions', 'categories', 'extraGuidance', 'updatedBy', 'riskTypeDefinitions'];
+const ALLOWED = ['impactLevelDefinitions', 'categories', 'extraGuidance', 'updatedBy', 'riskTypeDefinitions', 'impactLlmInstructions', 'categoryLlmInstructions'];
 
 router.get('/', async (req, res, next) => {
   try {

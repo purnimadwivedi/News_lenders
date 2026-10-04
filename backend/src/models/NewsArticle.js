@@ -20,6 +20,32 @@ const ClassificationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+
+const AuditEntrySchema = new mongoose.Schema(
+  {
+    entityId: { type: mongoose.Schema.Types.ObjectId, ref: 'NewsArticle' },
+    fieldName: { type: String, default: 'Classification' },
+    previousValue: { type: String, default: '' },
+    newValue: { type: String, default: '' },
+    previousImpact: { type: String, default: '' },
+    newImpact: { type: String, default: '' },
+    previousRiskType: { type: String, default: '' },
+    newRiskType: { type: String, default: '' },
+    changedBy: { type: String, default: 'Admin (Meera)' },
+    changedAt: { type: Date, default: Date.now },
+    performedBy: { type: String, default: 'Admin (Meera)' },
+    performedAt: { type: Date, default: Date.now },
+    action: {
+      type: String,
+      enum: ['initial_classification', 'override_applied', 'override_cleared'],
+      default: 'override_applied'
+    },
+    note: { type: String, default: '' },
+    details: { type: String, default: '' }
+  },
+  { _id: true }
+);
+
 const UserOverrideSchema = new mongoose.Schema(
   {
     riskType: {
@@ -63,6 +89,7 @@ const NewsArticleSchema = new mongoose.Schema(
     classificationAttempts: { type: Number, default: 0 },
 
     userOverride: { type: UserOverrideSchema, default: null },
+    auditTrail: { type: [AuditEntrySchema], default: [] },
 
     emailedImmediate: { type: Boolean, default: false, index: true },
     includedInDigest: { type: Boolean, default: false, index: true }
