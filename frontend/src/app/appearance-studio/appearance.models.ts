@@ -267,6 +267,21 @@ export function resolveEffectiveAppearance(
 
 export const THEME_PRESETS: ThemePreset[] = [
   {
+    id: 'imgc-orange',
+    name: 'IMGC Orange',
+    primary: '#F37819',
+    secondary: '#475569',
+    accent: '#EA580C',
+    bg: '#F0F2F5',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    mutedText: '#64748B',
+    border: '#E2E8F0',
+    sidebarBg: '#404040',
+    headerBg: '#FFFFFF',
+    primaryHover: '#EA580C'
+  },
+  {
     id: 'enterprise-blue',
     name: 'Enterprise Blue',
     primary: '#2563EB',
@@ -348,20 +363,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     mutedText: '#0F766E',
     border: '#CCFBF1',
     sidebarBg: '#115E59',
-    headerBg: '#FFFFFF'
-  },
-  {
-    id: 'warm-orange',
-    name: 'Warm Orange',
-    primary: '#EA580C',
-    secondary: '#78716C',
-    accent: '#FB923C',
-    bg: '#FFF7ED',
-    surface: '#FFFFFF',
-    text: '#7C2D12',
-    mutedText: '#C2410C',
-    border: '#FED7AA',
-    sidebarBg: '#431407',
     headerBg: '#FFFFFF'
   },
   {

@@ -31,7 +31,7 @@ const EMPTY: Configuration = {
   extraGuidance: ''
 };
 
-const LEVELS = ['High', 'Medium', 'Low', 'Critical'] as const;
+const LEVELS = ['Critical', 'High', 'Medium', 'Low'] as const;
 
 const IMGC_PLACEHOLDERS: Record<string, string> = {
   High: 'Defines what High impact means from the IMGC business perspective (e.g. material impact on our portfolio or a key lender partner).',
@@ -111,11 +111,11 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         </div>
       </div>
 
-      <!-- Section 2: Category Configuration (Management UI) -->
+      <!-- Section 2: Category Master List (Management UI) -->
       <div *ngIf="cfg" class="card section">
         <div class="section-head">
           <div>
-            <h2>Category Configuration</h2>
+            <h2>Category Master List</h2>
             <p class="muted small">Manage news classification categories. Add, edit, or delete categories directly from this page.</p>
           </div>
           <button type="button" class="btn-accent" (click)="openAddCategory()">
@@ -169,7 +169,60 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         </div>
       </div>
 
-      <!-- Section 3: Extra Guidance -->
+      <!-- Section 3: Category Configuration with Dual Textbox -->
+      <div *ngIf="cfg && cfg.categories.length" class="card section">
+        <div class="section-head" (click)="categoryDefsOpen = !categoryDefsOpen" style="cursor: pointer;">
+          <div>
+            <h2>Category Configuration</h2>
+            <p class="muted small">Configure IMGC-specific definitions and specific instructions for the LLM classifier for each category.</p>
+          </div>
+          <button type="button" class="pill-btn" (click)="categoryDefsOpen = !categoryDefsOpen; $event.stopPropagation()">
+            {{ categoryDefsOpen ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+
+        <div *ngIf="categoryDefsOpen" class="impact-levels-container">
+          <div *ngFor="let cat of cfg.categories" class="impact-block card">
+            <div class="impact-block-header">
+              <span class="badge category-def-badge" style="font-size: 13px; padding: 4px 12px;">{{ cat.name }}</span>
+            </div>
+
+            <div class="dual-textbox-grid">
+              <!-- Field A: IMGC Specific Definition -->
+              <div class="textbox-field">
+                <label class="field-label">
+                  <span class="label-badge">A</span>
+                  <strong>IMGC Specific Definition</strong>
+                </label>
+                <div class="field-hint">Defines what {{ cat.name }} news means specifically from the organization's business perspective.</div>
+                <textarea
+                  [(ngModel)]="cat.imgcDefinition"
+                  [placeholder]="categoryImgcPlaceholder(cat)"
+                  rows="3"
+                  class="definition-textarea"
+                ></textarea>
+              </div>
+
+              <!-- Field B: LLM Instructions -->
+              <div class="textbox-field">
+                <label class="field-label">
+                  <span class="label-badge llm-badge">B</span>
+                  <strong>LLM Instructions</strong>
+                </label>
+                <div class="field-hint">Gives instructions to the LLM about how it should identify and classify {{ cat.name }} news.</div>
+                <textarea
+                  [(ngModel)]="cat.llmInstructions"
+                  [placeholder]="categoryLlmPlaceholder(cat)"
+                  rows="3"
+                  class="definition-textarea"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Extra Guidance -->
       <div *ngIf="cfg" class="card section">
         <h2>Extra Guidance</h2>
         <p class="muted small">
@@ -230,20 +283,28 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
       .impact-block-header {
         margin-bottom: 12px;
       }
+      /* Label, hint and textarea rows are shared across both fields (subgrid), so the two
+         textareas of a level always start on the same line and have the same height. */
       .dual-textbox-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 16px;
+        grid-template-rows: auto auto minmax(84px, auto);
+        column-gap: 16px;
+        row-gap: 6px;
       }
       @media (max-width: 768px) {
         .dual-textbox-grid {
           grid-template-columns: 1fr;
+          grid-template-rows: none;
+          row-gap: 16px;
         }
+        .textbox-field { row-gap: 6px; }
       }
       .textbox-field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        display: grid;
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        min-width: 0;
       }
       .field-label {
         display: flex;
@@ -265,6 +326,10 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         font-size: 11px;
         font-weight: 700;
       }
+      .category-def-badge {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
       .label-badge.llm-badge {
         background: #ede9fe;
         color: #7c3aed;
@@ -276,6 +341,11 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
       }
       .definition-textarea {
         width: 100%;
+        height: 100%;
+        min-height: 84px;
+        margin: 0;
+        box-sizing: border-box;
+        resize: vertical;
         font-size: 13px;
         line-height: 1.45;
         border-radius: 6px;
@@ -352,6 +422,7 @@ export class SettingsComponent implements OnInit {
   cfg: Configuration | null = null;
   saving = false;
   impactConfigOpen = true;
+  categoryDefsOpen = true;
   status: { kind: 'ok' | 'err'; msg: string } | null = null;
 
   levels = LEVELS;
@@ -411,6 +482,15 @@ export class SettingsComponent implements OnInit {
       },
       error: () => (this.saving = false)
     });
+  }
+
+  categoryImgcPlaceholder(cat: Category): string {
+    const example = cat.description ? ` (e.g. ${cat.description.charAt(0).toLowerCase()}${cat.description.slice(1)})` : '';
+    return `Defines what ${cat.name} news means from the IMGC business perspective${example}.`;
+  }
+
+  categoryLlmPlaceholder(cat: Category): string {
+    return `Instructions to the LLM on how to identify ${cat.name} news (e.g. signals to look for, what to exclude, tie-breakers with other categories).`;
   }
 
   // --- Category Management Methods ---
@@ -513,7 +593,11 @@ export class SettingsComponent implements OnInit {
       ...EMPTY,
       ...c,
       impactLevelDefinitions: normImpacts,
-      categories: c?.categories && c.categories.length > 0 ? c.categories : DEFAULT_CATEGORIES
+      categories: (c?.categories && c.categories.length > 0 ? c.categories : DEFAULT_CATEGORIES).map((cat) => ({
+        ...cat,
+        imgcDefinition: cat.imgcDefinition || '',
+        llmInstructions: cat.llmInstructions || ''
+      }))
     };
   }
 }

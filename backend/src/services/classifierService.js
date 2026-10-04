@@ -111,7 +111,14 @@ function categorySection(cfg) {
     .map((c) => {
       const id = c.id || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const desc = c.description || DEFAULT_RISK_TYPES[id] || '';
-      return `- ${c.name} (id: "${id}"): ${desc || 'Relevant events in this category'}`;
+      const imgc = (c.imgcDefinition || '').trim();
+      const llm = (c.llmInstructions || '').trim();
+      let text = `- ${c.name} (id: "${id}"): ${desc || 'Relevant events in this category'}`;
+      if (imgc) text += `
+    IMGC Specific Definition: ${imgc}`;
+      if (llm) text += `
+    LLM Instructions: ${llm}`;
+      return text;
     })
     .join('\n');
 }
@@ -264,10 +271,43 @@ async function classifyArticle(article, { examples, config } = {}) {
   };
 }
 
+// Failed articles are retried until they have failed this many times for article-specific reasons.
+const MAX_CLASSIFY_ATTEMPTS = 3;
+
+// Errors that affect every request on the account (no credits, bad key, rate limited, overloaded).
+// Retrying other articles in the same run is pointless, and they say nothing about the article itself.
+function accountWideReason(err) {
+  if (err instanceof Anthropic.AuthenticationError) return 'Anthropic API key rejected (401)';
+  if (err instanceof Anthropic.PermissionDeniedError) return 'Anthropic API permission denied (403)';
+  if (err instanceof Anthropic.RateLimitError) return 'Anthropic API rate limit hit (429)';
+  if (err instanceof Anthropic.APIError && err.status === 529) return 'Anthropic API overloaded (529)';
+  // Billing failures arrive as a generic 400 invalid_request_error, so the message is the only signal.
+  if (err instanceof Anthropic.BadRequestError && /credit balance/i.test(err.message)) {
+    return 'Anthropic API credit balance too low — top up in Plans & Billing';
+  }
+  return null;
+}
+
+function isTransient(err) {
+  if (accountWideReason(err)) return true;
+  if (err instanceof Anthropic.APIConnectionError) return true;
+  return err instanceof Anthropic.APIError && typeof err.status === 'number' && err.status >= 500;
+}
+
 async function classifyPending({ limit = 50 } = {}) {
   const pending = await NewsArticle.find({ classificationStatus: 'pending' })
     .sort({ publishedAt: -1 })
     .limit(limit);
+  if (pending.length < limit) {
+    const retries = await NewsArticle.find({
+      classificationStatus: 'failed',
+      classificationAttempts: { $lt: MAX_CLASSIFY_ATTEMPTS }
+    })
+      .sort({ publishedAt: -1 })
+      .limit(limit - pending.length);
+    if (retries.length) logger.info(`  retrying ${retries.length} previously failed article(s)`);
+    pending.push(...retries);
+  }
 
   const fewShot = await fetchFewShotExamples();
   const cfg = await Configuration.getSingleton();
@@ -280,6 +320,7 @@ async function classifyPending({ limit = 50 } = {}) {
 
   let classified = 0;
   let failed = 0;
+  let abortReason = '';
 
   for (const article of pending) {
     try {
@@ -298,12 +339,19 @@ async function classifyPending({ limit = 50 } = {}) {
       failed += 1;
       article.classificationStatus = 'failed';
       article.classificationError = err.message?.slice(0, 500) || 'unknown error';
+      if (!isTransient(err)) article.classificationAttempts = (article.classificationAttempts || 0) + 1;
       await article.save();
       logger.error(`  -> classify failed: ${err.message}`);
+
+      abortReason = accountWideReason(err) || '';
+      if (abortReason) {
+        logger.error(`  stopping classification for this run: ${abortReason}`);
+        break;
+      }
     }
   }
 
-  return { classified, failed, total: pending.length };
+  return { classified, failed, total: pending.length, abortReason };
 }
 
 module.exports = {

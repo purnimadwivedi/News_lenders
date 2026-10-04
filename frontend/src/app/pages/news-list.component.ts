@@ -193,6 +193,7 @@ export class NewsListComponent implements OnInit {
   riskLevel = '';
   impactLevel = '';
   riskType = '';
+  period = '';
 
   editingId: string | null = null;
   editState: EditState | null = null;
@@ -207,6 +208,7 @@ export class NewsListComponent implements OnInit {
       this.riskLevel = params.get('risk') ?? params.get('riskLevel') ?? '';
       this.riskType = params.get('riskType') ?? '';
       this.cmpny = params.get('company') ?? '';
+      this.period = params.get('period') ?? '';
     });
     this.api.listCompanies().subscribe((c) => {
       this.companies = c;
@@ -321,6 +323,7 @@ export class NewsListComponent implements OnInit {
     if (this.riskLevel) params['riskLevel'] = this.riskLevel;
     if (this.impactLevel) params['impactLevel'] = this.impactLevel;
     if (this.riskType) params['riskType'] = this.riskType;
+    if (this.period) params['period'] = this.period;
 
     this.api.listNews(params).subscribe({
       next: (r) => {

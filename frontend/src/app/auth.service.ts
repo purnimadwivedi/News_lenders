@@ -57,7 +57,8 @@ export class AuthService {
       const stored = localStorage.getItem('userTenantId');
       if (stored) return stored;
     }
-    return this.isAdmin() ? 'tenant-admin-imgc' : 'tenant-lender-partner';
+    // Single organisation (IMGC): every role and the login page share one branding record.
+    return 'tenant-admin-imgc';
   }
 
   getUserId(): string {

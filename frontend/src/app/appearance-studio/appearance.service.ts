@@ -23,6 +23,27 @@ import {
 
 export const DEFAULT_LOGO = DEFAULT_AUTH_LOGO;
 
+export const DEFAULT_APP_NAME = 'News Radar';
+const LEGACY_APP_NAME = 'Lender News';
+
+// Branding saved before the rename still carries the old default name; treat it as the default.
+// Likewise, never-customised branding (version 1) still carries the old Enterprise Blue default colour.
+function upgradeLegacyAppName(branding: any): boolean {
+  if (!branding || typeof branding !== 'object') return false;
+  let changed = false;
+  if (branding.version === 1 && typeof branding.primaryColor === 'string' && branding.primaryColor.toUpperCase() === '#2563EB') {
+    branding.primaryColor = '#F37819';
+    changed = true;
+  }
+  for (const key of ['applicationName', 'appName', 'appTitle']) {
+    if (branding[key] === LEGACY_APP_NAME) {
+      branding[key] = DEFAULT_APP_NAME;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function isCorruptedLogo(url?: string | null): boolean {
   if (!url || typeof url !== 'string') return true;
   if (url.length === 9122) return true;
@@ -34,13 +55,13 @@ function isCorruptedLogo(url?: string | null): boolean {
 export const DEFAULT_APPEARANCE_STATE: AppearanceState = {
   theme: {
     mode: 'light',
-    presetId: 'enterprise-blue'
+    presetId: 'imgc-orange'
   },
   colors: {
-    primary: '#2563EB',
+    primary: '#F37819',
     secondary: '#475569',
-    accent: '#3B82F6',
-    bg: '#F8FAFC',
+    accent: '#EA580C',
+    bg: '#F0F2F5',
     surface: '#FFFFFF',
     text: '#0F172A',
     mutedText: '#64748B',
@@ -53,14 +74,14 @@ export const DEFAULT_APPEARANCE_STATE: AppearanceState = {
     medium: '#F59E0B',
     high: '#F97316',
     critical: '#EF4444',
-    primaryHover: '#1D4ED8'
+    primaryHover: '#EA580C'
   },
   bg: {
     style: 'solid',
-    appBg: '#F8FAFC',
+    appBg: '#F0F2F5',
     surfaceBg: '#FFFFFF',
-    sidebarBg: '#1E293B',
-    bgColor: '#F8FAFC',
+    sidebarBg: '#404040',
+    bgColor: '#F0F2F5',
     surfaceColor: '#FFFFFF',
     surface2Color: '#F1F5F9',
     borderColor: '#E2E8F0',
@@ -82,18 +103,18 @@ export const DEFAULT_APPEARANCE_STATE: AppearanceState = {
     enableAnimations: true
   },
   branding: {
-    applicationName: 'Lender News',
-    appName: 'Lender News',
+    applicationName: DEFAULT_APP_NAME,
+    appName: DEFAULT_APP_NAME,
     logoUrl: DEFAULT_LOGO,
     loginLogo: DEFAULT_LOGO,
     sidebarLogo: DEFAULT_LOGO,
-    favicon: '',
-    faviconUrl: '',
+    favicon: DEFAULT_LOGO,
+    faviconUrl: DEFAULT_LOGO,
     termsPrivacyText: 'By signing in you agree to our Terms of Service and Privacy Policy.',
-    appTitle: 'Lender News',
+    appTitle: DEFAULT_APP_NAME,
     appSubtitle: 'IMGC Reviewer Portal',
     logoBorderRadius: 10,
-    primaryColor: '#2563EB',
+    primaryColor: '#F37819',
     secondaryColor: '#0F172A',
     version: 1
   },
@@ -236,10 +257,18 @@ export class AppearanceService {
           const raw = localStorage.getItem(key);
           if (raw) {
             const parsed = JSON.parse(raw);
+            let changed = upgradeLegacyAppName(parsed);
             if (parsed && isCorruptedLogo(parsed.logoUrl)) {
               parsed.logoUrl = DEFAULT_LOGO;
-              localStorage.setItem(key, JSON.stringify(parsed));
+              changed = true;
             }
+            if (changed) localStorage.setItem(key, JSON.stringify(parsed));
+          }
+        } else if (key && (key.startsWith('appearance:') || (key.startsWith('lender_news_user_') && key.endsWith('_appearance')))) {
+          const raw = localStorage.getItem(key);
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && upgradeLegacyAppName(parsed.branding)) {
+            localStorage.setItem(key, JSON.stringify(parsed));
           }
         }
       }
@@ -590,7 +619,32 @@ export class AppearanceService {
    */
   public loadEffectiveState(): AppearanceState {
     const userId = this.currentUserId;
-    return this.getUserAppearance(userId);
+    return this.withTenantBranding(this.getUserAppearance(userId));
+  }
+
+  /**
+   * Branding belongs to the organisation, not the user: a user's saved appearance may hold an old
+   * copy, so the organisation's saved branding always takes precedence when it exists.
+   */
+  private withTenantBranding(state: AppearanceState): AppearanceState {
+    const tenant = this.getTenantConfig(this.currentTenantId);
+    if (!tenant || !tenant.branding) return state;
+    const b = tenant.branding;
+    const logo = (url: string | undefined, fallback: string) => (isCorruptedLogo(url) ? fallback : (url as string));
+    return {
+      ...state,
+      branding: {
+        ...state.branding,
+        ...b,
+        applicationName: b.applicationName || b.appName || state.branding.applicationName,
+        appName: b.appName || b.applicationName || state.branding.appName,
+        logoUrl: logo(b.logoUrl, DEFAULT_LOGO),
+        loginLogo: logo(b.loginLogo, logo(b.logoUrl, DEFAULT_LOGO)),
+        sidebarLogo: logo(b.sidebarLogo, logo(b.logoUrl, DEFAULT_LOGO)),
+        favicon: b.favicon || b.faviconUrl || DEFAULT_LOGO,
+        faviconUrl: b.faviconUrl || b.favicon || DEFAULT_LOGO
+      }
+    };
   }
 
   /**
@@ -722,8 +776,8 @@ export class AppearanceService {
   }
 
   public onLogout(): void {
-    // Clear user state from active memory & draft
-    const def = this.clone(DEFAULT_APPEARANCE_STATE);
+    // Clear user state from active memory & draft (organisation branding stays for the login page)
+    const def = this.withTenantBranding(this.clone(DEFAULT_APPEARANCE_STATE));
     this.savedStateSubject.next(def);
     this.draftStateSubject.next(def);
     this.isOpenSubject.next(false);
@@ -836,7 +890,7 @@ export class AppearanceService {
     }
 
     const isDark = state.theme.mode === 'dark';
-    const primary = state.colors.primary || (isDark ? '#3b82f6' : '#2563eb');
+    const primary = state.colors.primary || (isDark ? '#3b82f6' : '#F37819');
     const accent = state.colors.accent || (isDark ? '#60a5fa' : '#3b82f6');
 
     // Centralized theme tokens application strictly scoped to the authenticated app container
@@ -857,7 +911,7 @@ export class AppearanceService {
     }
 
     // Dynamic browser title with centralized app branding (ONLY for authenticated app)
-    const title = state.branding.applicationName || state.branding.appName || 'Lender News';
+    const title = state.branding.applicationName || state.branding.appName || DEFAULT_APP_NAME;
     if (document.title && !document.title.includes(title)) {
       document.title = `${title} | Risk & News Portal`;
     }
@@ -873,7 +927,7 @@ export class AppearanceService {
       }
       link.href = favicon;
     } else if (link) {
-      link.href = 'data:image/x-icon;,';
+      link.href = DEFAULT_LOGO;
     }
 
     // Typography Scale & Language Preference
@@ -898,7 +952,7 @@ export class AppearanceService {
 
     if (appElement) {
       appElement.style.setProperty('--font-scale', scale.toString());
-      appElement.style.setProperty('--font-size-body', `calc(14px * var(--font-scale))`);
+      appElement.style.setProperty('--font-size-body', '14px'); // scaling is done with zoom on the content
       appElement.style.setProperty('--font-size-label', `calc(12px * var(--font-scale))`);
       appElement.style.setProperty('--font-size-heading', `calc(24px * var(--font-scale))`);
       appElement.style.setProperty('--border-radius', rad);
@@ -917,8 +971,10 @@ export class AppearanceService {
       document.head.appendChild(styleTag);
     }
 
+    const brandVars = this.brandCssVars(state);
     let css = `
       .authenticated-app {
+        ${brandVars}
         --font-scale: ${scale};
         --card-radius: ${rad};
         --border-radius: ${rad};
@@ -931,27 +987,36 @@ export class AppearanceService {
         border-radius: var(--card-radius) !important;
       }
       .authenticated-app {
-        font-size: calc(14px * var(--font-scale)) !important;
+        font-size: 14px !important;
       }
       .authenticated-app h1, 
       .authenticated-app .dash-main-title {
-        font-size: calc(22px * var(--font-scale)) !important;
+        font-size: 20px !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
       }
-      .authenticated-app h2, 
-      .authenticated-app h3, 
+      .authenticated-app h2:not(.banner-title), 
+      .authenticated-app h3:not(.dash-chart-title), 
       .authenticated-app .section-title {
-        font-size: calc(16px * var(--font-scale)) !important;
+        font-size: 16px !important;
       }
       .authenticated-app button, 
       .authenticated-app input, 
       .authenticated-app select, 
       .authenticated-app textarea, 
       .authenticated-app label {
-        font-size: calc(13px * var(--font-scale)) !important;
+        font-size: 12px !important;
       }
+      /* Tables use the same 12px body size as the dashboard lists */
       .authenticated-app td, 
       .authenticated-app th {
-        font-size: calc(13px * var(--font-scale)) !important;
+        font-size: 12px !important;
+      }
+      /* Typography scale: zoom the page content so every element (cards, charts, tables) scales together.
+         Applied to main's children (zoom on <main> itself is ignored here); the header keeps its fixed
+         height so it stays aligned with the sidebar brand. */
+      .authenticated-app main.content > *:not(.global-header) {
+        zoom: ${scale};
       }
     `;
 
@@ -971,5 +1036,49 @@ export class AppearanceService {
 
     styleTag.textContent = css;
   }
+
+  /**
+   * CSS variables the app's own styles read (styles.css / app.component), so Theme, Colors and BG
+   * changes show up across the workspace. Each style keeps the IMGC Orange value as its fallback.
+   */
+  private brandCssVars(state: AppearanceState): string {
+    const safe = (v: string | undefined, fallback: string) =>
+      v && /^#[0-9a-f]{3,8}$/i.test(v.trim()) ? v.trim() : fallback;
+    const isDark = state.theme.mode === 'dark';
+    const primary = safe(state.colors.primary, '#F37819');
+    const accent = safe(state.colors.accent, primary);
+    const sidebar = safe(state.bg.sidebarBg, '#404040');
+
+    let contentBg = safe(state.bg.appBg || state.colors.bg, '#F0F2F5');
+    if (state.bg.style === 'gradient' && state.bg.gradientPreset && !/[;{}]/.test(state.bg.gradientPreset)) {
+      contentBg = state.bg.gradientPreset;
+    } else if (state.bg.style === 'image' && state.bg.customImageUrl) {
+      contentBg = `url("${state.bg.customImageUrl.replace(/"/g, '%22')}") center / cover no-repeat fixed`;
+    }
+
+    const vars: string[] = [
+      `--app-primary: ${primary};`,
+      `--app-accent: ${accent};`,
+      `--app-primary-soft: color-mix(in srgb, ${primary} 10%, #ffffff);`,
+      `--app-primary-soft-2: color-mix(in srgb, ${primary} 18%, #ffffff);`,
+      `--app-primary-shadow: color-mix(in srgb, ${primary} 35%, transparent);`,
+      `--app-banner-bg: color-mix(in srgb, ${primary} 35%, #1a0d05);`
+    ];
+    // Dark mode has its own sidebar/background rules; only drive them in light mode.
+    if (!isDark) {
+      vars.push(`--app-sidebar-bg: ${sidebar};`);
+      vars.push(`--app-sidebar-fg: ${isLightColor(sidebar) ? '#334155' : '#9ca3af'};`);
+      vars.push(`--app-sidebar-fg-strong: ${isLightColor(sidebar) ? '#0f172a' : '#ffffff'};`);
+      vars.push(`--app-content-bg: ${contentBg};`);
+    }
+    return vars.join(' ');
+  }
+}
+
+function isLightColor(hex: string): boolean {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
 }
 

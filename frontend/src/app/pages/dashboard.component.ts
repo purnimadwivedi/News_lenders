@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
+import { TranslatePipe, translate } from '../i18n';
 import { AuthService } from '../auth.service';
 import { Company, NewsArticle, Stats, DashboardPeriod, DashboardFilter, DashboardResponse } from '../models';
 import { AppearanceService, CarouselSlide } from '../appearance-studio';
@@ -13,7 +14,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, TranslatePipe],
   template: `
     <!-- Announcement Carousel (Configured via Appearance Studio Carousel Tab) -->
     <div class="dash-carousel-wrap" 
@@ -92,7 +93,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
                     (click)="toggleLenderDropdown($event)"
                     aria-haspopup="listbox"
                     [attr.aria-expanded]="lenderDropdownOpen">
-              <span class="pill-label">{{ selectedCompany ? selectedCompany.name : 'Every Lender' }}</span>
+              <span class="pill-label">{{ selectedCompany ? selectedCompany.name : ('everyLender' | t) }}</span>
               <button *ngIf="selectedCompany" 
                       type="button" 
                       class="pill-clear-btn" 
@@ -103,40 +104,40 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               </svg>
             </button>
 
-            <!-- Dropdown Menu -->
-            <div class="lender-dropdown-menu" 
-                 *ngIf="lenderDropdownOpen" 
-                 (click)="$event.stopPropagation()">
-              <div class="lender-search-bar">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" 
-                       [(ngModel)]="lenderSearch" 
-                       placeholder="Search lender..." 
-                       (click)="$event.stopPropagation()" />
-                <button *ngIf="lenderSearch" 
-                        type="button" 
-                        class="btn-clear-input" 
-                        (click)="lenderSearch = ''">✕</button>
-              </div>
+          <!-- Dropdown Menu -->
+          <div class="lender-dropdown-menu" 
+               *ngIf="lenderDropdownOpen" 
+               (click)="$event.stopPropagation()">
+            <div class="lender-search-bar">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" 
+                     [(ngModel)]="lenderSearch" 
+                     [placeholder]="'searchLender' | t" 
+                     (click)="$event.stopPropagation()" />
+              <button *ngIf="lenderSearch" 
+                      type="button" 
+                      class="btn-clear-input" 
+                      (click)="lenderSearch = ''">✕</button>
+            </div>
 
-              <div class="lender-dropdown-list" role="listbox">
-                <!-- 'Every Lender' option to reset -->
-                <div class="lender-dropdown-item" 
-                     [class.selected]="!selectedCompany"
-                     (click)="selectCompany(null)"
-                     role="option"
-                     [attr.aria-selected]="!selectedCompany">
-                  <div class="lender-item-left">
-                    <span class="lender-item-name">Every Lender</span>
-                    <span class="lender-item-badge">All</span>
-                  </div>
-                  <div class="lender-item-right">
-                    <span class="lender-item-count">{{ totalArticlesCount }}</span>
-                  </div>
+            <div class="lender-dropdown-list" role="listbox">
+              <!-- 'Every Lender' option to reset -->
+              <div class="lender-dropdown-item" 
+                   [class.selected]="!selectedCompany"
+                   (click)="selectCompany(null)"
+                   role="option"
+                   [attr.aria-selected]="!selectedCompany">
+                <div class="lender-item-left">
+                  <span class="lender-item-name">{{ 'everyLender' | t }}</span>
+                  <span class="lender-item-badge">{{ 'all' | t }}</span>
                 </div>
+                <div class="lender-item-right">
+                  <span class="lender-item-count">{{ totalArticlesCount }}</span>
+                </div>
+              </div>
 
                 <div class="lender-dropdown-divider"></div>
 
@@ -184,8 +185,8 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Total Articles</div>
-          <div class="dash-card-sub">{{ selectedCompany ? selectedCompany.name : 'All Tracked Activity' }}</div>
+          <div class="dash-card-label">{{ 'totalArticles' | t }}</div>
+          <div class="dash-card-sub">{{ selectedCompany ? selectedCompany.name : ('allActivity' | t) }}</div>
         </div>
 
         <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Critical' })">
@@ -195,7 +196,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Critical</div>
+          <div class="dash-card-label">{{ 'critical' | t }}</div>
         </div>
 
         <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'High' })">
@@ -205,7 +206,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">High</div>
+          <div class="dash-card-label">{{ 'high' | t }}</div>
         </div>
 
         <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Medium' })">
@@ -215,7 +216,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Medium</div>
+          <div class="dash-card-label">{{ 'medium' | t }}</div>
         </div>
 
         <div class="dash-card hand-cursor" [routerLink]="getNewsLink({ impact: 'Low' })">
@@ -225,7 +226,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">Low</div>
+          <div class="dash-card-label">{{ 'low' | t }}</div>
         </div>
 
         <div class="dash-card hand-cursor" routerLink="/companies">
@@ -235,7 +236,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             </div>
           </div>
-          <div class="dash-card-label">{{ selectedCompany ? 'Selected Lender' : 'Lenders Tracked' }}</div>
+          <div class="dash-card-label">{{ (selectedCompany ? 'selectedLender' : 'lendersTracked') | t }}</div>
           <div class="dash-card-sub">{{ displayLendersSub }}</div>
         </div>
       </div>
@@ -246,9 +247,9 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
       <!-- Categories (formerly Risk Types) -->
       <div class="dash-chart-card">
         <div class="dash-chart-header">
-          <h3 class="dash-chart-title">Categories</h3>
+          <h3 class="dash-chart-title">{{ 'categories' | t }}</h3>
           <div class="dash-chart-tabs">
-            <button class="tab-pill-active">Articles</button>
+            <button class="tab-pill-active">{{ 'articles' | t }}</button>
           </div>
         </div>
 
@@ -261,13 +262,9 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
               </linearGradient>
             </defs>
 
-            <!-- Horizontal Background Guide Lines -->
-            <line x1="45" y1="25" x2="480" y2="25" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
-            <line x1="45" y1="50" x2="480" y2="50" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
-            <line x1="45" y1="75" x2="480" y2="75" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
-            <line x1="45" y1="100" x2="480" y2="100" stroke="#cbd5e1" stroke-width="1.5" />
+            <!-- Y Axis & Grid Lines -->
+            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle" fill="#2563eb">{{ 'count' | t }}</text>
 
-            <!-- Y-Axis Dynamic Ticks -->
             <ng-container *ngFor="let tick of riskAxis.ticks">
               <text x="38" [attr.y]="100 - (tick / riskAxis.niceMax) * 75 + 3" text-anchor="end" fill="#94a3b8" font-size="9">{{ tick }}</text>
             </ng-container>
@@ -302,7 +299,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
         <div class="chart-legend">
           <div class="legend-item">
             <span class="legend-swatch-orange" style="background: #3b82f6;"></span>
-            <span>Articles Count</span>
+            <span>{{ 'articlesCount' | t }}</span>
           </div>
         </div>
       </div>
@@ -310,12 +307,12 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
       <!-- Top mentioned lenders -->
       <div class="dash-chart-card">
         <div class="dash-chart-header" style="justify-content: center; position: relative;">
-          <h3 class="dash-chart-title">Top mentioned lenders</h3>
+          <h3 class="dash-chart-title">{{ 'topMentioned' | t }}</h3>
           <div class="dash-chart-tabs" style="position: absolute; right: 0;">
             <button *ngIf="selectedCompany" class="tab-pill-active hand-cursor" (click)="selectCompany(null)" title="Reset to Every Lender">
-              ✕ Reset
+              ✕ {{ 'reset' | t }}
             </button>
-            <button class="tab-pill-outline hand-cursor" routerLink="/companies">All Lenders</button>
+            <button class="tab-pill-outline hand-cursor" routerLink="/companies">{{ 'allLenders' | t }}</button>
           </div>
         </div>
         <div class="dash-lenders-list" style="display: grid; grid-template-columns: 1fr; gap: 4px 20px;">
@@ -332,9 +329,8 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
             </div>
             <span class="bar-count">{{ item.count }}</span>
           </div>
-
-          <div *ngIf="displayTopCompanies.length === 0" style="text-align: center; color: #94a3b8; padding: 24px 0; font-size: 13px;">
-            No lender mentions found for this period
+          <div *ngIf="displayTopCompanies.length === 0" class="lender-no-results">
+            {{ 'noMentions' | t }}
           </div>
         </div>
       </div>
@@ -469,12 +465,86 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.getUserProfile();
   }
 
-  get displayTitle(): string {
-    return this.selectedCompany ? this.selectedCompany.name : 'Every Lender';
+  selectedPeriod: 'MTD' | 'QTD' | 'CFY' = 'CFY';
+
+  getPeriodStartDate(period: 'MTD' | 'QTD' | 'CFY'): Date {
+    const now = new Date();
+    if (period === 'MTD') {
+      return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    }
+    if (period === 'QTD') {
+      const qMonth = Math.floor(now.getMonth() / 3) * 3;
+      return new Date(now.getFullYear(), qMonth, 1, 0, 0, 0, 0);
+    }
+    if (period === 'CFY') {
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      return new Date(fyYear, 3, 1, 0, 0, 0, 0);
+    }
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  }
+
+  get periodArticles(): NewsArticle[] {
+    const startDate = this.getPeriodStartDate(this.selectedPeriod);
+    return this.allArticles.filter((a) => !!a.publishedAt && new Date(a.publishedAt) >= startDate);
+  }
+
+  get filteredArticles(): NewsArticle[] {
+    const base = this.periodArticles;
+    if (!this.selectedCompany) return base;
+    return base.filter((a) => this.matchesCompany(a, this.selectedCompany!));
+  }
+
+  get totalArticlesCount(): number {
+    return this.periodArticles.length;
   }
 
   get displayTotal(): number {
-    return this.dashboardData?.summary?.totalArticles ?? this.stats?.total ?? this.filteredArticles.length;
+    return this.filteredArticles.length;
+  }
+
+  setPeriod(p: 'MTD' | 'QTD' | 'CFY') {
+    if (p === this.selectedPeriod) return;
+    this.selectedPeriod = p;
+    this.loadPeriodData();
+  }
+
+  private loadPeriodData() {
+    const period = this.selectedPeriod;
+    this.api.newsStats(period).subscribe({
+      next: (s) => {
+        if (period === this.selectedPeriod) this.stats = s;
+      },
+      error: () => { }
+    });
+    this.fetchPeriodArticles(period);
+    this.api.listNews({ period, impactLevel: 'High', limit: '5' }).subscribe((r) => {
+      if (period !== this.selectedPeriod) return;
+      this.topArticles = r.items;
+      if (this.topArticles.length < 5) {
+        this.api.listNews({ period, impactLevel: 'Critical', limit: '5' }).subscribe((rc) => {
+          if (period !== this.selectedPeriod) return;
+          this.topArticles = [...rc.items, ...this.topArticles].slice(0, 5);
+        });
+      }
+    });
+  }
+
+  // The API caps a page at 200, so page through until every article in the period is loaded.
+  private fetchPeriodArticles(period: 'MTD' | 'QTD' | 'CFY', acc: NewsArticle[] = []) {
+    this.api.listNews({ period, limit: '200', skip: String(acc.length) }).subscribe((r) => {
+      if (period !== this.selectedPeriod) return;
+      const page = r.items || [];
+      const items = [...acc, ...page];
+      if (page.length && items.length < r.total) {
+        this.fetchPeriodArticles(period, items);
+        return;
+      }
+      this.allArticles = items;
+    });
+  }
+
+  get displayTitle(): string {
+    return this.selectedCompany ? this.selectedCompany.name : translate(this.appearanceService.state.display.language, 'everyLender');
   }
 
   get displayCritical(): number {
@@ -494,27 +564,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.selectedCompany) {
       return this.selectedCompany.sector || 'Selected Lender';
     }
-    return 'Active Portfolios';
-  }
-
-  get periodArticles(): NewsArticle[] {
-    const range = getDateRange(this.selectedPeriod);
-    const startDate = new Date(range.startDate);
-    const filtered = this.allArticles.filter((a) => {
-      if (!a.publishedAt) return true;
-      return new Date(a.publishedAt) >= startDate;
-    });
-    return filtered.length > 0 ? filtered : this.allArticles;
-  }
-
-  get filteredArticles(): NewsArticle[] {
-    const base = this.periodArticles;
-    if (!this.selectedCompany) return base;
-    return base.filter((a) => this.matchesCompany(a, this.selectedCompany!));
-  }
-
-  get totalArticlesCount(): number {
-    return this.dashboardData?.summary?.totalArticles ?? this.periodArticles.length;
+    return translate(this.appearanceService.state.display.language, 'activePortfolios');
   }
 
   get filteredCompanies(): Company[] {
@@ -545,7 +595,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Optional background articles for extra details
     this.api.listNews({ limit: '200' }).subscribe({
       next: (r) => (this.allArticles = r.items || []),
-      error: () => {}
+      error: () => { }
     });
 
     this.api.listNews({ impactLevel: 'High', limit: '5' }).subscribe({
@@ -557,7 +607,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           });
         }
       },
-      error: () => {}
+      error: () => { }
     });
 
     this.startCarouselTimer();
@@ -697,36 +747,54 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  isSelectedLender(companyName: string): boolean {
-    if (!this.selectedCompany) return false;
-    return this.selectedCompany.name.toLowerCase().trim() === companyName.toLowerCase().trim();
-  }
-
-  toggleLenderDropdown(event: Event) {
-    event.stopPropagation();
-    this.lenderDropdownOpen = !this.lenderDropdownOpen;
-    if (this.lenderDropdownOpen) {
-      this.userDropdownOpen = false;
-      this.lenderSearch = '';
+  getNewsLink(params: Record<string, string>): any[] {
+    const p: Record<string, string> = { ...params };
+    if (this.selectedCompany) {
+      p['company'] = this.selectedCompany.name;
     }
-  }
-
-  toggleUserDropdown(event: Event) {
-    event.stopPropagation();
-    this.userDropdownOpen = !this.userDropdownOpen;
-    if (this.userDropdownOpen) {
-      this.lenderDropdownOpen = false;
+    if (this.selectedPeriod) {
+      p['period'] = this.selectedPeriod;
     }
+    return Object.keys(p).length ? ['/news', p] : ['/news'];
   }
 
-  closeUserDropdown() {
-    this.userDropdownOpen = false;
+  matchesCompany(article: NewsArticle, company: Company): boolean {
+    if (!company) return true;
+    const companyId = company._id;
+    const companyName = company.name?.toLowerCase().trim();
+
+    if (article.company) {
+      if (typeof article.company === 'string' && companyId && article.company === companyId) {
+        return true;
+      }
+      if (typeof article.company === 'object' && companyId && (article.company as Company)._id === companyId) {
+        return true;
+      }
+    }
+    if (article.companyName && companyName) {
+      const artCompName = article.companyName.toLowerCase().trim();
+      if (artCompName === companyName) {
+        return true;
+      }
+      if (company.aliases && company.aliases.some((alias) => alias.toLowerCase().trim() === artCompName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  logout(event: Event) {
-    event.stopPropagation();
-    this.userDropdownOpen = false;
-    this.authService.logout();
+  getArticleImpact(a: NewsArticle): string {
+    const eff = (a as any).effectiveClassification || {};
+    const c = a.classification || eff || {};
+    const u = a.userOverride;
+    if (u && u.overriddenAt && u.impactLevel) {
+      return u.impactLevel;
+    }
+    return c.impactLevel || eff.impactLevel || 'Low';
+  }
+
+  getCompanyArticleCount(c: Company): number {
+    return this.periodArticles.filter((a) => this.matchesCompany(a, c)).length;
   }
 
   @HostListener('document:click')
@@ -746,6 +814,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     if (this.lenderDropdownOpen) {
       this.lenderDropdownOpen = false;
+    }
+  }
+
+  ngOnInit() {
+    this.selectedPeriod = 'CFY';
+    this.api.listCompanies().subscribe((comps) => {
+      this.companies = (comps || []).sort((a, b) => a.name.localeCompare(b.name));
+    });
+    this.loadPeriodData();
+    this.startCarouselTimer();
+  }
+
+  ngOnDestroy() {
+    if (this.carouselTimer) {
+      clearInterval(this.carouselTimer);
     }
   }
 
@@ -815,21 +898,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   get displayTopCompanies(): { _id: string; name: string; count: number }[] {
-    if (this.dashboardData?.topMentionedLenders && this.dashboardData.topMentionedLenders.length) {
-      return this.dashboardData.topMentionedLenders.map((l) => ({
-        _id: l.lenderName || l.name || l.lenderId,
-        name: l.lenderName || l.name || l.lenderId,
-        count: l.count
-      }));
-    }
-    if (this.stats?.topCompanies && this.stats.topCompanies.length) {
-      return this.stats.topCompanies.map((t) => ({
-        _id: t.name || t._id,
-        name: t.name || t._id,
-        count: t.count
-      }));
-    }
-    return [];
+    const counts: Record<string, number> = {};
+    this.filteredArticles.forEach((a) => {
+      const name = a.companyName || (typeof a.company === 'object' ? (a.company as Company)?.name : '') || '';
+      if (name) {
+        counts[name] = (counts[name] || 0) + 1;
+      }
+    });
+    return Object.keys(counts)
+      .map((k) => ({ _id: k, name: k, count: counts[k] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
   }
 
   barWidth(count: number): number {
@@ -913,23 +992,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.getYAxisTicks(this.maxRiskCount);
   }
 
+  private riskCounts(): { _id: string; count: number }[] {
+    const counts: Record<string, number> = {};
+    this.filteredArticles.forEach(a => {
+      const type = a.userOverride?.riskType || a.classification?.riskType || 'none';
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return Object.keys(counts).map(k => ({ _id: k, count: counts[k] }));
+  }
+
   get maxRiskCount(): number {
-    const list = this.dashboardData?.categories?.length
-      ? this.dashboardData.categories
-      : (this.stats?.byRisk || []);
-    return Math.max(...list.map((d) => d.count), 1);
+    const data = this.riskCounts();
+    return Math.max(...data.map(d => d.count), 1);
   }
 
   getRiskChartData() {
-    let data: { _id: string; count: number }[] = [];
-    if (this.dashboardData?.categories && this.dashboardData.categories.length) {
-      data = this.dashboardData.categories.map((c) => ({
-        _id: c.category || c._id || 'none',
-        count: c.count
-      }));
-    } else if (this.stats?.byRisk) {
-      data = this.stats.byRisk;
-    }
+    let data = this.riskCounts();
 
     if (!data.length) return [];
 

@@ -59,6 +59,8 @@ const NewsArticleSchema = new mongoose.Schema(
       index: true
     },
     classificationError: { type: String, default: '' },
+    // Failures caused by the article itself; account-wide errors (billing, auth, rate limits) don't count.
+    classificationAttempts: { type: Number, default: 0 },
 
     userOverride: { type: UserOverrideSchema, default: null },
 

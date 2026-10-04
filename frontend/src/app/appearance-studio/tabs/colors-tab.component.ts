@@ -22,21 +22,17 @@ interface ColorSettingItem {
       </div>
 
       <div class="colors-list">
-        <div class="color-row-card" *ngFor="let item of colorItems">
+        <div class="color-row-card" *ngFor="let item of colorItems" [title]="item.name + ': ' + item.description">
+          <!-- Native Color Picker Input -->
+          <label class="color-picker-thumb" [style.background]="draftColors[item.key]">
+            <input type="color" 
+                   class="hidden-native-picker" 
+                   [ngModel]="draftColors[item.key]" 
+                   (ngModelChange)="onColorUpdate(item.key, $event)" />
+          </label>
+
           <div class="color-text-meta">
             <span class="color-item-name">{{ item.name }}</span>
-            <span class="color-item-desc">{{ item.description }}</span>
-          </div>
-
-          <div class="color-controls">
-            <!-- Native Color Picker Input -->
-            <label class="color-picker-thumb" [style.background]="draftColors[item.key]">
-              <input type="color" 
-                     class="hidden-native-picker" 
-                     [ngModel]="draftColors[item.key]" 
-                     (ngModelChange)="onColorUpdate(item.key, $event)" />
-            </label>
-
             <!-- Hex Value Text Input -->
             <input type="text" 
                    class="hex-code-input" 
@@ -52,7 +48,7 @@ interface ColorSettingItem {
     .tab-pane {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .pane-title {
@@ -70,9 +66,10 @@ interface ColorSettingItem {
       margin: 2px 0 0 0;
     }
 
+    /* Two compact columns so all 11 colors fit without scrolling; descriptions show as tooltips */
     .colors-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
@@ -80,11 +77,11 @@ interface ColorSettingItem {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 10px 14px;
+      padding: 7px 10px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
+      min-width: 0;
       transition: border-color 0.15s;
     }
 
@@ -95,31 +92,26 @@ interface ColorSettingItem {
     .color-text-meta {
       display: flex;
       flex-direction: column;
+      gap: 3px;
       min-width: 0;
+      flex: 1;
     }
 
     .color-item-name {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .color-item-desc {
-      font-size: 10.5px;
-      color: #64748b;
-      margin-top: 1px;
-    }
 
-    .color-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
 
     .color-picker-thumb {
-      width: 28px;
-      height: 28px;
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
       border-radius: 6px;
       border: 1.5px solid #cbd5e1;
       cursor: pointer;
@@ -145,9 +137,11 @@ interface ColorSettingItem {
     }
 
     .hex-code-input {
-      width: 82px;
-      padding: 5px 8px;
-      font-size: 11.5px;
+      width: 100%;
+      max-width: 90px;
+      box-sizing: border-box;
+      padding: 2px 6px;
+      font-size: 11px;
       font-weight: 700;
       font-family: monospace;
       color: #0f172a;
