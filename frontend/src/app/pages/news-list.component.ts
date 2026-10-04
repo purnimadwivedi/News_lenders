@@ -38,7 +38,7 @@ interface AuditTimelineItem {
   imports: [CommonModule, FormsModule],
   template: `
 
-    <div class="card" style="margin-top: 16px;">
+    <div class="card filter-card">
       <div class="toolbar news-toolbar">
         <div class="toolbar-item toolbar-search">
           <input [(ngModel)]="search" (ngModelChange)="reload()" placeholder="Search title..." />
@@ -134,7 +134,7 @@ interface AuditTimelineItem {
       </div>
     </div>
 
-    <div *ngIf="!articles.length && !loading" class="card" style="margin-top: 14px; text-align: center; padding: 36px; color: var(--muted);">
+    <div *ngIf="!articles.length && !loading" class="card" style="margin-top: 8px; text-align: center; padding: 28px; color: var(--muted);">
       No articles match your filters yet.
     </div>
 
@@ -143,17 +143,31 @@ interface AuditTimelineItem {
         <div style="min-width: 0; flex: 1;">
           <a [href]="a.url" target="_blank" rel="noopener" class="title">{{ a.title }}</a>
           <div class="meta">
-            <strong>{{ a.companyName }}</strong> · <strong>{{ a.source || 'unknown' }}</strong> ·
-            {{ a.publishedAt | date: 'medium' }}
+            <span><strong>{{ a.companyName }}</strong> · <strong>{{ a.source || 'unknown' }}</strong> ·
+            {{ a.publishedAt | date: 'medium' }}</span>
+            <span class="badges">
+              <ng-container *ngIf="effective(a) as eff">
+                <span class="badge badge-{{ eff.impactLevel }}">
+                  Impact: {{ eff.impactLevel || '—' }}
+                </span>
+                <span class="badge">{{ eff.riskType || 'unclassified' }}</span>
+              </ng-container>
+              <span class="badge" *ngIf="a.classificationStatus !== 'classified'" style="background:#fef3c7; color:#92400e;">
+                {{ a.classificationStatus }}
+              </span>
+              <span class="badge" *ngIf="a.emailedImmediate" style="background:#dbeafe; color:#1e40af;">alerted</span>
+            </span>
           </div>
         </div>
         <div class="actions">
           <!-- Audit Trail (i) Icon Button placed before Change Classification -->
-          <button type="button" 
-                  class="btn-audit-icon hand-cursor" 
-                  [class.active]="auditArticle?._id === a._id" 
-                  (click)="openAuditModal(a)" 
-                  title="View Classification Audit Trail & History">
+          <button type="button"
+                  class="btn-audit-icon hand-cursor"
+                  [class.active]="auditArticle?._id === a._id"
+                  [class.changed]="!!classificationChange(a)"
+                  (click)="openAuditModal(a)"
+                  [title]="auditButtonTitle(a)"
+                  [attr.aria-label]="auditButtonTitle(a)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -165,19 +179,6 @@ interface AuditTimelineItem {
             <button type="button" class="danger" (click)="openDeleteModal(a)">Delete</button>
           </ng-container>
         </div>
-      </div>
-
-      <div class="badges">
-        <ng-container *ngIf="effective(a) as eff">
-          <span class="badge badge-{{ eff.impactLevel }}">
-            Impact: {{ eff.impactLevel || '—' }}
-          </span>
-          <span class="badge">{{ eff.riskType || 'unclassified' }}</span>
-        </ng-container>
-        <span class="badge" *ngIf="a.classificationStatus !== 'classified'" style="background:#fef3c7; color:#92400e;">
-          {{ a.classificationStatus }}
-        </span>
-        <span class="badge" *ngIf="a.emailedImmediate" style="background:#dbeafe; color:#1e40af;">alerted</span>
       </div>
 
       <p *ngIf="a.classification?.rationale" class="rationale">
@@ -196,7 +197,7 @@ interface AuditTimelineItem {
 
     </div>
 
-    <div *ngIf="total > articles.length" style="text-align: center; margin-top: 16px;">
+    <div *ngIf="total > articles.length" style="text-align: center; margin-top: 10px;">
       <button (click)="loadMore()" [disabled]="loading">Load more</button>
     </div>
 
@@ -396,7 +397,8 @@ interface AuditTimelineItem {
               Clear override
             </button>
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span *ngIf="saveError" style="color: var(--critical); font-size: 12px;">{{ saveError }}</span>
             <button type="button" (click)="closeEditModal()" [disabled]="saving">Cancel</button>
             <button type="button" class="primary" (click)="saveOverride()" [disabled]="saving">
               {{ saving ? 'Saving…' : 'Save & teach AI' }}
@@ -462,12 +464,15 @@ interface AuditTimelineItem {
   styles: [
     `
       h1 { margin: 0 0 4px 0; font-size: 24px; }
-      .article-card { margin-top: 14px; }
+      /* Compact layout: tight card spacing; impact/category tags share the lender · source · date line */
+      .filter-card { padding: 10px 12px; }
+      .article-card { margin-top: 8px; padding: 10px 14px; }
       .article-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
       .title { font-size: 16px; font-weight: 600; color: var(--text); text-decoration: none; line-height: 1.4; word-break: break-word; }
       .title:hover { color: var(--primary); }
-      .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-      .badges { margin-top: 12px; }
+      .meta { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+      .badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+      .meta .badge { margin: 0; }
       .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
       .actions button { font-size: 11px; padding: 4px 9px; }
 
@@ -491,6 +496,29 @@ interface AuditTimelineItem {
         border-color: #38bdf8 !important;
         color: #0369a1 !important;
         transform: scale(1.08);
+      }
+      /* Classification was changed by a user at some point */
+      .btn-audit-icon.changed {
+        position: relative;
+        background: #fef3c7 !important;
+        border-color: #f59e0b !important;
+        color: #b45309 !important;
+      }
+      .btn-audit-icon.changed::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f59e0b;
+        border: 2px solid #ffffff;
+      }
+      .btn-audit-icon.changed:hover {
+        background: #fde68a !important;
+        border-color: #d97706 !important;
+        color: #92400e !important;
       }
       .btn-audit-icon.active {
         background: #0284c7 !important;
@@ -847,11 +875,11 @@ interface AuditTimelineItem {
         color: #334155;
         line-height: 1.45;
       }
-      .rationale { font-size: 13px; line-height: 1.5; color: #374151; margin: 12px 0 4px 0; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--primary); border-radius: 4px; }
+      .rationale { font-size: 13px; line-height: 1.45; color: #374151; margin: 8px 0 0 0; padding: 6px 12px; background: var(--surface-2); border-left: 3px solid var(--primary); border-radius: 4px; }
       .rationale.override-note { background: #f5f3ff; border-left-color: #7c3aed; }
-      .description { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 8px 0 0 0; }
-      .suggested { font-size: 12px; color: #374151; margin-top: 10px; }
-      .suggested ul { margin: 4px 0 0 18px; padding: 0; }
+      .description { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 6px 0 0 0; }
+      .suggested { font-size: 12px; color: #374151; margin-top: 6px; }
+      .suggested ul { margin: 2px 0 0 18px; padding: 0; }
 
       /* Change Classification Modal */
       .edit-modal-backdrop {
@@ -1263,6 +1291,7 @@ export class NewsListComponent implements OnInit {
   total = 0;
   loading = false;
   saving = false;
+  saveError = '';
   pageSize = 25;
   skip = 0;
   search = '';
@@ -1292,6 +1321,7 @@ export class NewsListComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.clearLegacyAuditCopies();
     this.route.paramMap.subscribe(params => {
       if (params.has('impact')) this.impactLevel = params.get('impact') ?? '';
       if (params.has('risk') || params.has('riskLevel')) this.riskLevel = params.get('risk') ?? params.get('riskLevel') ?? '';
@@ -1470,30 +1500,13 @@ export class NewsListComponent implements OnInit {
     return name.substring(0, 2).toUpperCase();
   }
 
-  private getPersistedAuditTrail(articleId: string): ClassificationAuditHistory[] {
+  // The audit trail is stored and served by the backend only. Older builds also kept a browser copy under
+  // 'audit_history_<id>', whose client-timestamped entries never matched the server's and showed up twice.
+  private clearLegacyAuditCopies() {
     try {
-      const raw = localStorage.getItem('audit_history_' + articleId);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  private appendPersistedAuditRecord(articleId: string, record: ClassificationAuditHistory) {
-    try {
-      const current = this.getPersistedAuditTrail(articleId);
-      const exists = current.some(
-        (x) =>
-          (x.id && record.id && x.id === record.id) ||
-          (x._id && record._id && x._id === record._id) ||
-          (new Date(x.performedAt || x.changedAt || '').getTime() ===
-            new Date(record.performedAt || record.changedAt || '').getTime())
-      );
-      if (!exists) {
-        current.push(record);
-        localStorage.setItem('audit_history_' + articleId, JSON.stringify(current));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('audit_history_')) localStorage.removeItem(key);
       }
     } catch (_) {}
   }
@@ -1503,28 +1516,13 @@ export class NewsListComponent implements OnInit {
     const baseImpact = a.classification?.impactLevel || 'Low';
     const baseRiskType = a.classification?.riskType || 'none';
 
-    // 1. Gather backend auditTrail entries
+    // 1. The backend's auditTrail is the single source of truth
     const combined: ClassificationAuditHistory[] = [];
     if (a.auditTrail && Array.isArray(a.auditTrail)) {
       combined.push(...a.auditTrail);
     }
 
-    // 2. Gather persisted entries from localStorage (ensures offline/refresh/re-login persistence)
-    const localEntries = this.getPersistedAuditTrail(a._id);
-    for (const le of localEntries) {
-      const alreadyIn = combined.some(
-        (x) =>
-          (x._id && le._id && x._id === le._id) ||
-          (x.id && le.id && x.id === le.id) ||
-          (new Date(x.performedAt || x.changedAt || '').getTime() ===
-            new Date(le.performedAt || le.changedAt || '').getTime())
-      );
-      if (!alreadyIn) {
-        combined.push(le);
-      }
-    }
-
-    // 3. Fallback: If article has userOverride with overriddenAt, ensure an audit entry exists for it!
+    // 2. Fallback for overrides made before the audit trail existed: show (but never store) an entry for it
     if (a.userOverride && a.userOverride.overriddenAt) {
       const u = a.userOverride;
       const uTime = new Date(u.overriddenAt || Date.now()).getTime();
@@ -1554,11 +1552,10 @@ export class NewsListComponent implements OnInit {
           details: `Classification changed from ${baseImpact} (${this.formatCategory(baseRiskType)}) to ${u.impactLevel || baseImpact} (${this.formatCategory(u.riskType || baseRiskType)})`
         };
         combined.push(syntheticEntry);
-        this.appendPersistedAuditRecord(a._id, syntheticEntry);
       }
     }
 
-    // 4. Convert all records to timeline items (excluding initial_classification per requirement)
+    // 3. Convert all records to timeline items (excluding initial_classification per requirement)
     for (const entry of combined) {
       if (entry.action === 'initial_classification') continue;
 
@@ -1593,23 +1590,51 @@ export class NewsListComponent implements OnInit {
     return history;
   }
 
+  /**
+   * The latest user change to this article's classification, or null if it still has the AI's original one.
+   * Uses the server's audit trail, falling back to the current override for overrides made before the trail existed.
+   */
+  classificationChange(a: NewsArticle): { by: string; at: string; cleared: boolean } | null {
+    const entries = (a.auditTrail || []).filter(
+      (e) => e.action === 'override_applied' || e.action === 'override_cleared'
+    );
+    if (entries.length) {
+      const latest = entries.reduce((x, y) =>
+        new Date(y.changedAt || y.performedAt || 0).getTime() > new Date(x.changedAt || x.performedAt || 0).getTime() ? y : x
+      );
+      return {
+        by: latest.changedBy || latest.performedBy || 'a user',
+        at: (latest.changedAt || latest.performedAt || '') as string,
+        cleared: latest.action === 'override_cleared'
+      };
+    }
+    const u = a.userOverride;
+    if (u && u.overriddenAt) return { by: u.overriddenBy || 'a user', at: u.overriddenAt, cleared: false };
+    return null;
+  }
+
+  auditButtonTitle(a: NewsArticle): string {
+    const ch = this.classificationChange(a);
+    if (!ch) return 'View Classification Audit Trail & History';
+    const when = ch.at
+      ? new Date(ch.at).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+    const what = ch.cleared ? 'Override cleared (back to AI classification)' : 'Classification changed';
+    return `${what} by ${ch.by}${when ? ' on ' + when : ''} — view audit trail`;
+  }
+
   openAuditModal(a: NewsArticle) {
     this.auditArticle = a;
     // Always sync with dedicated audit history endpoint
     this.api.getAuditHistory(a._id).subscribe({
       next: (history) => {
-        if (history && history.length > 0) {
-          for (const item of history) {
-            this.appendPersistedAuditRecord(a._id, item);
-          }
-          a.auditTrail = this.getPersistedAuditTrail(a._id);
-          if (this.auditArticle && this.auditArticle._id === a._id) {
-            this.auditArticle = { ...a };
-          }
+        a.auditTrail = Array.isArray(history) ? history : [];
+        if (this.auditArticle && this.auditArticle._id === a._id) {
+          this.auditArticle = { ...a };
         }
       },
       error: () => {
-        // Silently use existing/persisted audit trail
+        // Keep showing the trail that came with the article
       }
     });
   }
@@ -1632,6 +1657,7 @@ export class NewsListComponent implements OnInit {
   }
 
   closeEditModal() {
+    this.saveError = '';
     this.editingArticle = null;
     this.editingId = null;
     this.editState = null;
@@ -1687,10 +1713,10 @@ export class NewsListComponent implements OnInit {
         : `Classification changed from ${currentImpact} (${this.formatCategory(currentRiskType)}) to ${newImpact} (${this.formatCategory(newRiskType)})`
     };
 
-    // Append to local persistent store immediately (immutable append-only)
-    this.appendPersistedAuditRecord(target._id, newAuditEntry);
-
-    // Update target article object immediately
+    // Show the change immediately; the server's response replaces it with the stored record
+    const previousOverride = target.userOverride;
+    const previousTrail = target.auditTrail ? [...target.auditTrail] : [];
+    this.saveError = '';
     target.userOverride = {
       impactLevel: newImpact,
       riskLevel: this.editState.riskLevel || 'Low',
@@ -1714,12 +1740,7 @@ export class NewsListComponent implements OnInit {
       next: (updated) => {
         const idx = this.articles.findIndex((x) => x._id === target._id);
         if (idx >= 0) {
-          if (updated.auditTrail && Array.isArray(updated.auditTrail)) {
-            for (const item of updated.auditTrail) {
-              this.appendPersistedAuditRecord(target._id, item);
-            }
-          }
-          updated.auditTrail = this.getPersistedAuditTrail(target._id);
+          updated.auditTrail = Array.isArray(updated.auditTrail) ? updated.auditTrail : [];
           if (!updated.userOverride || !updated.userOverride.overriddenAt) {
             updated.userOverride = target.userOverride;
           } else if (noteText && !updated.userOverride.note) {
@@ -1733,18 +1754,17 @@ export class NewsListComponent implements OnInit {
         this.saving = false;
         this.closeEditModal();
       },
-      error: () => {
-        // Keep optimistic update & audit trail even on server timeout/error
+      error: (err) => {
+        // Nothing was saved: undo the on-screen change so the audit trail only ever shows stored records
+        target.userOverride = previousOverride;
+        target.auditTrail = previousTrail;
         const idx = this.articles.findIndex((x) => x._id === target._id);
-        if (idx >= 0) {
-          target.auditTrail = this.getPersistedAuditTrail(target._id);
-          this.articles[idx] = { ...target };
-          if (this.auditArticle && this.auditArticle._id === target._id) {
-            this.auditArticle = { ...target };
-          }
+        if (idx >= 0) this.articles[idx] = { ...target };
+        if (this.auditArticle && this.auditArticle._id === target._id) {
+          this.auditArticle = { ...target };
         }
         this.saving = false;
-        this.closeEditModal();
+        this.saveError = err?.error?.error || 'The override could not be saved. Please try again.';
       }
     });
   }
@@ -1754,52 +1774,15 @@ export class NewsListComponent implements OnInit {
     if (!target) return;
     if (!confirm('Remove your override and revert to the AI classification?')) return;
 
-    const eff = this.effective(target);
-    const aiImpact = target.classification?.impactLevel || 'Low';
-    const aiRiskType = target.classification?.riskType || 'none';
-
     this.saving = true;
-    const profile = this.authService.getUserProfile();
-    const actorName = profile?.name || 'Admin (Meera)';
-    const nowIso = new Date().toISOString();
+    this.saveError = '';
 
-    // If classification is actually changing on revert, record the change
-    if (eff.impactLevel !== aiImpact || eff.riskType !== aiRiskType) {
-      const clearAuditRecord: ClassificationAuditHistory = {
-        id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        _id: 'audit_' + Date.now(),
-        entityId: target._id,
-        fieldName: 'Classification',
-        previousValue: `Impact: ${eff.impactLevel}, Category: ${this.formatCategory(eff.riskType)}`,
-        newValue: `Impact: ${aiImpact}, Category: ${this.formatCategory(aiRiskType)}`,
-        previousImpact: eff.impactLevel || 'Low',
-        newImpact: aiImpact,
-        previousRiskType: eff.riskType || 'none',
-        newRiskType: aiRiskType,
-        changedBy: actorName,
-        changedAt: nowIso,
-        performedBy: actorName,
-        performedAt: nowIso,
-        action: 'override_cleared',
-        title: 'Override Cleared',
-        note: 'Reverted to original AI classification',
-        details: `Classification override cleared by ${actorName}`
-      };
-      this.appendPersistedAuditRecord(target._id, clearAuditRecord);
-    }
-
+    // The backend records the 'override_cleared' audit entry; the page shows what it returns
     this.api.clearOverride(target._id).subscribe({
       next: (updated) => {
         const idx = this.articles.findIndex((x) => x._id === target._id);
         if (idx >= 0) {
-          if (!updated.auditTrail || updated.auditTrail.length === 0) {
-            updated.auditTrail = this.getPersistedAuditTrail(target._id);
-          } else {
-            for (const item of updated.auditTrail) {
-              this.appendPersistedAuditRecord(target._id, item);
-            }
-            updated.auditTrail = this.getPersistedAuditTrail(target._id);
-          }
+          updated.auditTrail = Array.isArray(updated.auditTrail) ? updated.auditTrail : [];
           this.articles[idx] = updated;
           if (this.auditArticle && this.auditArticle._id === target._id) {
             this.auditArticle = updated;
@@ -1808,7 +1791,10 @@ export class NewsListComponent implements OnInit {
         this.saving = false;
         this.closeEditModal();
       },
-      error: () => (this.saving = false)
+      error: (err) => {
+        this.saving = false;
+        this.saveError = err?.error?.error || 'The override could not be cleared. Please try again.';
+      }
     });
   }
 
