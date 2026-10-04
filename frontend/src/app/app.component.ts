@@ -44,8 +44,9 @@ import { DEFAULT_AUTH_LOGO } from './auth-logo';
         </div>
         <div class="mobile-header-right">
           <!-- Appearance Studio Launcher (Mobile) -->
-          <button type="button" 
-                  class="btn-studio-star-mobile" 
+          <button *ngIf="showAppearanceStudio"
+                  type="button"
+                  class="btn-studio-star-mobile"
                   (click)="appearanceService.openStudio()" 
                   title="Appearance Studio" 
                   aria-label="Appearance Studio">
@@ -150,8 +151,9 @@ import { DEFAULT_AUTH_LOGO } from './auth-logo';
           <h1 class="dash-main-title">{{ pageTitle }}</h1>
           <div class="dash-user-bar">
             <!-- Appearance Studio Launcher (Desktop) -->
-            <button type="button" 
-                    class="btn-studio-star" 
+            <button *ngIf="showAppearanceStudio"
+                    type="button"
+                    class="btn-studio-star"
                     (click)="appearanceService.openStudio()" 
                     title="Appearance Studio" 
                     aria-label="Appearance Studio">
@@ -220,7 +222,7 @@ import { DEFAULT_AUTH_LOGO } from './auth-logo';
       </div>
 
       <!-- Global Non-Routed Appearance Studio Overlay Panel: strictly scoped to AppLayout -->
-      <app-appearance-studio *ngIf="appearanceService.isOpen$ | async"></app-appearance-studio>
+      <app-appearance-studio *ngIf="showAppearanceStudio && (appearanceService.isOpen$ | async)"></app-appearance-studio>
     </div>
   `,
   styles: [
@@ -298,6 +300,9 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
   public authService = inject(AuthService);
   public appearanceService = inject(AppearanceService);
+
+  /** Appearance Studio is not being shown to the client yet; set to true to bring back its header buttons. */
+  readonly showAppearanceStudio = false;
   health: { ok: boolean; time: string; company: string; model: string } | null = null;
   healthError = false;
   sidebarOpen = false;
