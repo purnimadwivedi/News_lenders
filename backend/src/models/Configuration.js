@@ -46,6 +46,8 @@ const ConfigurationSchema = new mongoose.Schema(
       default: () => ({})
     },
     extraGuidance: { type: String, default: '' },
+    // Shared topic filter for lenders whose topicMode is 'default'. Empty = no filter.
+    defaultTopicKeywords: { type: [String], default: [] },
     updatedBy: { type: String, default: '' }
   },
   { timestamps: true }

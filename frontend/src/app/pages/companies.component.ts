@@ -3,14 +3,34 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
 import { Company } from '../models';
+import { TopicChipsComponent } from '../components/topic-chips.component';
+import { buildNewsQuery, cleanTerms, resolveTopicMode, MAX_QUERY_LENGTH, SHORT_ALIAS_LENGTH } from '../utils/news-query.util';
 
 @Component({
   selector: 'app-companies',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TopicChipsComponent],
   template: `
     <div class="page-header-row" style="justify-content: flex-end;">
       <button class="btn-accent" (click)="openNew()">+ Add lender</button>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <h3>Shared topic filter</h3>
+      <p class="field-hint" style="margin-top: 4px;">
+        Used by {{ defaultModeCount }} of {{ activeCount }} active lenders (those set to "Use the shared default").
+        An article must mention the lender <b>and</b> at least one of these topics. Leave empty to fetch all news.
+      </p>
+      <div style="margin-top: 10px;">
+        <app-topic-chips [topics]="draftTopics" (topicsChange)="draftTopics = $event" [disabled]="savingTopics"
+                         placeholder="Type a topic and press Enter, e.g. mortgage, home loan, NPA"></app-topic-chips>
+      </div>
+      <p *ngIf="defaultTopicsChanged" class="field-hint" style="margin-top: 6px;">{{ topicChangeSummary }}</p>
+      <div *ngIf="defaultTopicsChanged" class="toolbar" style="margin-top: 10px; display: flex; gap: 8px;">
+        <button class="primary" (click)="saveDefaultTopics()" [disabled]="savingTopics">{{ savingTopics ? 'Saving…' : 'Save' }}</button>
+        <button type="button" (click)="discardDefaultTopics()" [disabled]="savingTopics">Discard</button>
+      </div>
+      <p *ngIf="topicsMessage" class="field-hint" [class.field-error]="topicsMessageIsError" style="margin-top: 6px;">{{ topicsMessage }}</p>
     </div>
 
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
@@ -37,12 +57,42 @@ import { Company } from '../models';
           </select>
         </div>
         <div>
-          <label>Aliases (comma-separated)</label>
+          <label>Also known as (aliases, comma-separated)</label>
           <input [ngModel]="aliasesText" (ngModelChange)="setAliases($event)" placeholder="HDFC, Housing Development..." />
+          <p class="field-hint">Articles mentioning <b>any</b> of these names are fetched too, along with the main name.</p>
+          <p *ngIf="shortAliases.length" class="field-warn">
+            Short aliases ({{ shortAliases.join(', ') }}) can match unrelated articles. Prefer longer forms, e.g. "Axis Bank" instead of "AXIS".
+          </p>
         </div>
         <div class="grid-span-2">
-          <label>Extra search keywords (comma-separated)</label>
-          <input [ngModel]="keywordsText" (ngModelChange)="setKeywords($event)" placeholder="mortgage, home loan" />
+          <label>Only keep articles about (topic filter)</label>
+          <div class="topic-modes">
+            <label class="checkbox-label">
+              <input type="radio" name="topicMode" value="default" [(ngModel)]="editing.topicMode" />
+              <span>Use the shared default
+                <span class="muted">— {{ defaultTopics.length ? defaultTopics.join(', ') : 'none set, so all news is fetched' }}</span>
+              </span>
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" name="topicMode" value="custom" [(ngModel)]="editing.topicMode" />
+              <span>Custom topics for this lender</span>
+            </label>
+            <app-topic-chips *ngIf="editing.topicMode === 'custom'" class="topic-custom-input"
+                             [topics]="editing.searchKeywords || []" (topicsChange)="editing.searchKeywords = $event"
+                             placeholder="Type a topic and press Enter, e.g. mortgage, home loan"></app-topic-chips>
+            <label class="checkbox-label">
+              <input type="radio" name="topicMode" value="none" [(ngModel)]="editing.topicMode" />
+              <span>No filter — fetch all news about this lender</span>
+            </label>
+          </div>
+          <p class="field-hint">With a topic filter, an article must <b>also</b> mention at least one topic. Multi-word topics are matched as exact phrases.</p>
+        </div>
+        <div class="grid-span-2">
+          <label>Search preview</label>
+          <div class="query-preview" [class.over]="queryTooLong">{{ previewQuery || 'Enter a name to see the search query' }}</div>
+          <p class="field-hint" [class.field-error]="queryTooLong">
+            {{ previewQuery.length }} / {{ maxQueryLength }} characters{{ queryTooLong ? ' — too long for NewsAPI. Remove some aliases or topics.' : '' }}
+          </p>
         </div>
         <div class="grid-span-2">
           <label>Notes</label>
@@ -56,7 +106,10 @@ import { Company } from '../models';
         </div>
       </div>
       <div class="toolbar" style="margin-top: 14px;">
-        <button class="primary" (click)="save()">{{ editing._id ? 'Update' : 'Create' }}</button>
+        <button class="primary" (click)="save()" [disabled]="queryTooLong || (editing.topicMode === 'custom' && !(editing.searchKeywords || []).length)"
+                [title]="editing.topicMode === 'custom' && !(editing.searchKeywords || []).length ? 'Add at least one custom topic, or pick another option' : ''">
+          {{ editing._id ? 'Update' : 'Create' }}
+        </button>
         <button (click)="editing = null">Cancel</button>
         <span *ngIf="error" style="color: var(--critical); font-size: 12px;">{{ error }}</span>
       </div>
@@ -143,6 +196,18 @@ import { Company } from '../models';
     `
       h1 { margin: 0 0 4px 0; font-size: 24px; }
       h3 { margin: 0; font-size: 14px; }
+      .field-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+      .field-warn { margin: 4px 0 0; font-size: 12px; color: #b45309; }
+      .field-error { color: var(--critical); }
+      .topic-modes { display: flex; flex-direction: column; gap: 2px; }
+      .topic-modes input[type="radio"] { width: 16px; height: 16px; margin: 0; accent-color: var(--app-primary, #f37819); cursor: pointer; }
+      .topic-custom-input { display: block; margin: 2px 0 4px 24px; }
+      .query-preview {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+        background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+        white-space: pre-wrap; word-break: break-word; color: var(--text);
+      }
+      .query-preview.over { border-color: var(--critical); background: #fef2f2; }
       .table-actions {
         display: inline-flex;
         gap: 6px;
@@ -166,9 +231,90 @@ export class CompaniesComponent implements OnInit, DoCheck {
   selectedRelationship = '';
   editing: Partial<Company> | null = null;
   aliasesText = '';
-  keywordsText = '';
   error = '';
-  
+
+  // Shared topic filter (Configuration.defaultTopicKeywords): defaultTopics is what's saved, draftTopics is being edited.
+  defaultTopics: string[] = [];
+  draftTopics: string[] = [];
+  savingTopics = false;
+  topicsMessage = '';
+  topicsMessageIsError = false;
+  maxQueryLength = MAX_QUERY_LENGTH;
+
+  get activeCount(): number {
+    return this.items.filter((c) => c.active).length;
+  }
+
+  get defaultModeCount(): number {
+    return this.items.filter((c) => c.active && resolveTopicMode(c) === 'default').length;
+  }
+
+  get defaultTopicsChanged(): boolean {
+    return this.draftTopics.join('\n') !== this.defaultTopics.join('\n');
+  }
+
+  get topicChangeSummary(): string {
+    const has = (list: string[], t: string) => list.some((x) => x.toLowerCase() === t.toLowerCase());
+    const quoted = (list: string[]) => list.map((t) => `"${t}"`).join(', ');
+    const added = this.draftTopics.filter((t) => !has(this.defaultTopics, t));
+    const removed = this.defaultTopics.filter((t) => !has(this.draftTopics, t));
+    const n = this.defaultModeCount;
+    const lenders = `${n} lender${n === 1 ? '' : 's'} on the shared default`;
+    if (!this.draftTopics.length) return `Removing all topics — ${lenders} will fetch all news. Not saved yet.`;
+    const what = [added.length ? `adding ${quoted(added)}` : '', removed.length ? `removing ${quoted(removed)}` : '']
+      .filter(Boolean)
+      .join('; ');
+    return `${what.charAt(0).toUpperCase()}${what.slice(1)} — affects ${lenders}. Not saved yet.`;
+  }
+
+  get previewQuery(): string {
+    return this.editing ? buildNewsQuery(this.editing, this.defaultTopics) : '';
+  }
+
+  get queryTooLong(): boolean {
+    return this.previewQuery.length > MAX_QUERY_LENGTH;
+  }
+
+  get shortAliases(): string[] {
+    return cleanTerms(this.editing?.aliases).filter((a) => a.length <= SHORT_ALIAS_LENGTH);
+  }
+
+  saveDefaultTopics() {
+    const topics = cleanTerms(this.draftTopics);
+    this.savingTopics = true;
+    this.topicsMessage = '';
+    this.api.updateConfig({ defaultTopicKeywords: topics }).subscribe({
+      next: (cfg) => {
+        this.savingTopics = false;
+        // A backend without this setting drops the field and still answers 200; keep the draft and say so.
+        if (!Array.isArray(cfg.defaultTopicKeywords)) {
+          this.topicsMessageIsError = true;
+          this.topicsMessage = 'The server did not store the topics — the backend needs updating to support the shared topic filter.';
+          return;
+        }
+        this.setDefaultTopics(cfg.defaultTopicKeywords);
+        this.topicsMessageIsError = false;
+        this.topicsMessage = 'Saved. The next fetch uses these topics.';
+        setTimeout(() => (this.topicsMessage = ''), 5000);
+      },
+      error: (err) => {
+        this.savingTopics = false;
+        this.topicsMessageIsError = true;
+        this.topicsMessage = err.error?.error || 'Could not save the shared topics';
+      }
+    });
+  }
+
+  discardDefaultTopics() {
+    this.draftTopics = [...this.defaultTopics];
+    this.topicsMessage = '';
+  }
+
+  private setDefaultTopics(topics: string[]) {
+    this.defaultTopics = cleanTerms(topics);
+    this.draftTopics = [...this.defaultTopics];
+  }
+
   sortCol = 'name';
   sortDesc = false;
   pageSize = 10;
@@ -283,30 +429,24 @@ export class CompaniesComponent implements OnInit, DoCheck {
 
   load() {
     this.api.listCompanies().subscribe((c) => (this.items = c));
+    this.api.getConfig().subscribe((cfg) => this.setDefaultTopics(cfg.defaultTopicKeywords || []));
   }
 
   openNew() {
-    this.editing = { name: '', sector: '', relationship: 'Watchlist', active: true, aliases: [], searchKeywords: [] };
+    this.editing = { name: '', sector: '', relationship: 'Watchlist', active: true, aliases: [], searchKeywords: [], topicMode: 'default' };
     this.aliasesText = '';
-    this.keywordsText = '';
     this.error = '';
   }
 
   edit(c: Company) {
-    this.editing = { ...c };
+    this.editing = { ...c, topicMode: resolveTopicMode(c) };
     this.aliasesText = (c.aliases || []).join(', ');
-    this.keywordsText = (c.searchKeywords || []).join(', ');
     this.error = '';
   }
 
   setAliases(value: string) {
     this.aliasesText = value;
     if (this.editing) this.editing.aliases = value.split(',').map((s) => s.trim()).filter(Boolean);
-  }
-
-  setKeywords(value: string) {
-    this.keywordsText = value;
-    if (this.editing) this.editing.searchKeywords = value.split(',').map((s) => s.trim()).filter(Boolean);
   }
 
   save() {

@@ -2,6 +2,7 @@ const Company = require('../models/Company');
 const NewsArticle = require('../models/NewsArticle');
 const Recipient = require('../models/Recipient');
 const RunLog = require('../models/RunLog');
+const Configuration = require('../models/Configuration');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const newsService = require('../services/newsService');
@@ -46,13 +47,14 @@ async function doFetchAndClassify({ trigger }) {
 
   try {
     const companies = await Company.find({ active: true });
+    const { defaultTopicKeywords: defaultTopics = [] } = await Configuration.getSingleton();
     if (!companies.length) {
       logger.warn('No active companies configured. Add some via POST /api/companies');
     }
 
     for (const company of companies) {
       try {
-        const res = await newsService.fetchAndStoreForCompany(company);
+        const res = await newsService.fetchAndStoreForCompany(company, { defaultTopics });
         stats.companiesProcessed += 1;
         stats.articlesFetched += res.fetched;
         stats.articlesNew += res.newCount;

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const NewsArticle = require('../models/NewsArticle');
+const { buildNewsQuery, MAX_QUERY_LENGTH } = require('../utils/newsQuery');
 
 const NEWSAPI_URL = 'https://newsapi.org/v2/everything';
 
@@ -10,13 +11,6 @@ function hashUrl(url) {
   return crypto.createHash('sha256').update(url).digest('hex');
 }
 
-function buildQuery(company) {
-  const terms = [company.name]//, ...(company.aliases || []), ...(company.searchKeywords || [])]
-    .filter(Boolean)
-    .map((t) => `"${t.trim()}"`);
-  if (!terms.length) return company.name;
-  return terms.join(' OR ');
-}
 
 // Errors that apply to every request on the key; the run should stop instead of trying each lender.
 const ACCOUNT_WIDE_CODES = new Set(['apiKeyDisabled', 'apiKeyExhausted', 'apiKeyInvalid', 'apiKeyMissing', 'rateLimited']);
@@ -46,9 +40,9 @@ function resumeFrom(company, now = new Date()) {
   return from < earliest ? earliest : from;
 }
 
-async function requestPage(company, { from, to }) {
+async function requestPage(q, { from, to }) {
   const params = {
-    q: buildQuery(company),
+    q,
     language: env.newsapi.language,
     pageSize: env.newsapi.pageSize,
     sortBy: 'publishedAt',
@@ -79,12 +73,12 @@ async function requestPage(company, { from, to }) {
 // single query returns at most pageSize (and on the free plan at most 100 in total, so `page=2`
 // is refused), so further pages are requested by moving the `to` bound back to the oldest article
 // received so far. `complete` is false if maxPages ran out before reaching `from`.
-async function fetchForCompany(company, { from }) {
+async function fetchForCompany(q, { from }) {
   const all = [];
   let to = null;
 
   for (let page = 0; page < env.newsapi.maxPages; page++) {
-    const batch = await requestPage(company, { from, to });
+    const batch = await requestPage(q, { from, to });
     all.push(...batch);
     if (batch.length < env.newsapi.pageSize) return { articles: all, complete: true };
 
@@ -137,10 +131,14 @@ async function persistArticles(company, rawArticles) {
   return { newCount, inserted };
 }
 
-async function fetchAndStoreForCompany(company) {
+async function fetchAndStoreForCompany(company, { defaultTopics = [] } = {}) {
+  const q = buildNewsQuery(company, defaultTopics);
+  if (q.length > MAX_QUERY_LENGTH) {
+    throw new Error(`Search query is ${q.length} characters; NewsAPI allows ${MAX_QUERY_LENGTH}. Shorten this lender's aliases or topics.`);
+  }
   const from = resumeFrom(company);
-  logger.info(`Fetching news for: ${company.name} (since ${from.toISOString()})`);
-  const { articles: raw, complete } = await fetchForCompany(company, { from });
+  logger.info(`Fetching news for: ${company.name} (since ${from.toISOString()}) q=${q}`);
+  const { articles: raw, complete } = await fetchForCompany(q, { from });
   const result = await persistArticles(company, raw);
 
   // Advance only after the articles are stored, so a failed fetch retries from the same point.

@@ -15,11 +15,15 @@ export interface Company {
   sector?: string;
   relationship?: 'Self' | 'Customer' | 'Competitor' | 'Counterparty' | 'Partner' | 'Vendor' | 'Watchlist';
   searchKeywords?: string[];
+  topicMode?: TopicMode;
   active?: boolean;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
+
+/** 'default' = shared topic filter, 'custom' = the lender's own searchKeywords, 'none' = no topic filter. */
+export type TopicMode = 'default' | 'custom' | 'none';
 
 export interface Recipient {
   _id?: string;
@@ -96,6 +100,7 @@ export interface Configuration {
   categories: Category[];
   riskTypeDefinitions?: RiskTypeDefinitions;
   extraGuidance?: string;
+  defaultTopicKeywords?: string[];
   updatedBy?: string;
   updatedAt?: string;
   createdAt?: string;
