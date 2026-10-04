@@ -340,38 +340,6 @@ router.patch('/:id/override', async (req, res, next) => {
 
     await existing.save();
     return res.json(existing);
-
-    const actor = req.user?.name || update.overriddenBy || 'Admin (Meera)';
-    const serverTime = new Date();
-
-    const auditEntry = {
-      entityId: existing._id,
-      fieldName: 'Classification',
-      previousValue: `Impact: ${prevImpact}, Category: ${prevRiskType}`,
-      newValue: `Impact: ${newImpact}, Category: ${newRiskType}`,
-      previousImpact: prevImpact,
-      newImpact: newImpact,
-      previousRiskType: prevRiskType,
-      newRiskType: newRiskType,
-      changedBy: actor,
-      changedAt: serverTime,
-      performedBy: actor,
-      performedAt: serverTime,
-      action: 'override_applied',
-      note: update.note || '',
-      details: `Classification changed from ${prevImpact} (${prevRiskType}) to ${newImpact} (${newRiskType})`
-    };
-
-    update.overriddenAt = serverTime;
-    update.overriddenBy = actor;
-    existing.userOverride = update;
-
-    if (!existing.auditTrail) existing.auditTrail = [];
-    // IMMUTABLE APPEND-ONLY: Always append, never overwrite previous audit entries
-    existing.auditTrail.push(auditEntry);
-
-    await existing.save();
-    res.json(existing);
   } catch (err) {
     next(err);
   }
