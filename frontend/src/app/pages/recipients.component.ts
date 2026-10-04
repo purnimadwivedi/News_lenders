@@ -9,10 +9,6 @@ import { Recipient } from '../models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="page-header-row" style="justify-content: flex-end;">
-      <button class="btn-accent" (click)="openNew()">+ Add recipient</button>
-    </div>
-
     <div *ngIf="editing" class="card" style="margin-top: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3>{{ editing._id ? 'Edit recipient' : 'New recipient' }}</h3>
@@ -77,6 +73,8 @@ import { Recipient } from '../models';
           </svg>
           <input [(ngModel)]="search" placeholder="Search recipient..." />
         </div>
+        <div style="flex: 1;"></div>
+        <button class="btn-accent add-recipient-btn" (click)="openNew()">+ Add recipient</button>
       </div>
 
       <div class="table-wrap">
@@ -164,6 +162,7 @@ import { Recipient } from '../models';
       h1 { margin: 0 0 4px 0; font-size: 24px; }
       h3 { margin: 0; font-size: 14px; }
       td button { margin-left: 4px; font-size: 11px; padding: 4px 9px; }
+      .add-recipient-btn { border-radius: 999px; padding: 6px 14px; }
       
       .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
       .toggle-switch input { opacity: 0; width: 0; height: 0; }

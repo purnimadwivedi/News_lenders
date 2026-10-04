@@ -12,18 +12,20 @@ import { buildNewsQuery, cleanTerms, resolveTopicMode, MAX_QUERY_LENGTH, SHORT_A
   imports: [CommonModule, FormsModule, TopicChipsComponent],
   template: `
 
-    <div class="card" style="margin-top: 16px;">
-      <h3>Shared topic filter</h3>
-      <p class="field-hint" style="margin-top: 4px;">
-        Used by {{ defaultModeCount }} of {{ activeCount }} active lenders (those set to "Use the shared default").
-        An article must mention the lender <b>and</b> at least one of these topics. Leave empty to fetch all news.
-      </p>
-      <div style="margin-top: 10px;">
+    <div class="card shared-topics-card">
+      <div class="shared-topics-head">
+        <h3>Shared topic filter</h3>
+        <span class="field-hint">
+          Used by {{ defaultModeCount }} of {{ activeCount }} active lenders (those set to "Use the shared default").
+          An article must mention the lender <b>and</b> at least one of these topics. Leave empty to fetch all news.
+        </span>
+      </div>
+      <div style="margin-top: 6px;">
         <app-topic-chips [topics]="draftTopics" (topicsChange)="draftTopics = $event" [disabled]="savingTopics"
                          placeholder="Type a topic and press Enter, e.g. mortgage, home loan, NPA"></app-topic-chips>
       </div>
       <p *ngIf="defaultTopicsChanged" class="field-hint" style="margin-top: 6px;">{{ topicChangeSummary }}</p>
-      <div *ngIf="defaultTopicsChanged" class="toolbar" style="margin-top: 10px; display: flex; gap: 8px;">
+      <div *ngIf="defaultTopicsChanged" class="toolbar" style="margin: 6px 0 0; display: flex; gap: 8px;">
         <button class="primary" (click)="saveDefaultTopics()" [disabled]="savingTopics">{{ savingTopics ? 'Saving…' : 'Save' }}</button>
         <button type="button" (click)="discardDefaultTopics()" [disabled]="savingTopics">Discard</button>
       </div>
@@ -138,7 +140,7 @@ import { buildNewsQuery, cleanTerms, resolveTopicMode, MAX_QUERY_LENGTH, SHORT_A
       </div>
     </div>
 
-    <div class="card" style="margin-top: 16px; padding: 0;">
+    <div class="card lenders-table-card">
       <div class="table-toolbar">
         <div class="pill-input-group">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,10 +186,10 @@ import { buildNewsQuery, cleanTerms, resolveTopicMode, MAX_QUERY_LENGTH, SHORT_A
               <td><span style="color: #ea580c; font-weight: 500;">{{ c.relationship }}</span></td>
               <td style="color: #64748b;">{{ (c.aliases || []).join(', ') || '—' }}</td>
               <td>
-                <ng-container *ngIf="topicFilter(c) as tf">
+                <div *ngIf="topicFilter(c) as tf" class="topic-cell">
                   <span class="topic-badge" [ngClass]="'topic-' + tf.mode">{{ tf.label }}</span>
-                  <div *ngIf="tf.mode !== 'none'" class="topic-list">{{ tf.topics.length ? tf.topics.join(', ') : 'no topics set — all news' }}</div>
-                </ng-container>
+                  <span *ngIf="tf.mode !== 'none'" class="topic-list">{{ tf.topics.length ? tf.topics.join(', ') : 'no topics set — all news' }}</span>
+                </div>
               </td>
               <td [style.color]="c.active ? '#10b981' : '#ef4444'" style="font-weight: 500;">{{ c.active ? 'Active' : 'Inactive' }}</td>
               <td style="text-align: right; white-space: nowrap;">
@@ -252,12 +254,22 @@ import { buildNewsQuery, cleanTerms, resolveTopicMode, MAX_QUERY_LENGTH, SHORT_A
       }
       .lender-modal-error { margin-right: auto; color: var(--critical); font-size: 12px; }
       .field-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+      /* Compact layout */
+      .shared-topics-card { padding: 10px 12px; }
+      .shared-topics-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; }
+      .shared-topics-head .field-hint { margin: 0; }
+      .lenders-table-card { margin-top: 8px; padding: 0; }
+      .lenders-table-card .table-toolbar { padding: 6px 12px; }
+      .lenders-table-card th { padding-top: 4px; padding-bottom: 4px; }
+      .lenders-table-card td { padding-top: 4px; padding-bottom: 4px; }
+      .lenders-table-card .table-footer { padding-top: 4px; padding-bottom: 4px; }
       .add-lender-btn { border-radius: 999px; padding: 6px 14px; }
       .topic-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
       .topic-default { background: #ffedd5; color: #9a3412; }
       .topic-custom { background: #ede9fe; color: #5b21b6; }
       .topic-none { background: #f1f5f9; color: #475569; }
-      .topic-list { margin-top: 3px; font-size: 12px; color: #64748b; max-width: 260px; }
+      .topic-cell { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
+      .topic-list { font-size: 12px; color: #64748b; max-width: 260px; }
       .field-warn { margin: 4px 0 0; font-size: 12px; color: #b45309; }
       .field-error { color: var(--critical); }
       .topic-modes { display: flex; flex-direction: column; gap: 2px; }
@@ -378,7 +390,7 @@ export class CompaniesComponent implements OnInit, DoCheck {
 
   sortCol = 'name';
   sortDesc = false;
-  pageSize = 5;
+  pageSize = 10;
   currentPage = 1;
 
   sortBy(col: string) {

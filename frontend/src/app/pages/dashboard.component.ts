@@ -253,114 +253,39 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
           </div>
         </div>
 
-        <div class="dash-graph-container" style="height: 120px;">
-          <svg class="dash-svg-chart" viewBox="0 0 490 120" preserveAspectRatio="none" style="width: 100%; height: 100%; display: block;">
-            <defs>
-              <clipPath *ngFor="let d of getRiskChartData(); let idx = index" [attr.id]="'cat-bar-clip-' + idx">
-                <rect [attr.x]="d.x" [attr.y]="d.y" width="40" [attr.height]="d.barH" rx="4" />
-              </clipPath>
-            </defs>
-
-            <!-- Y Axis & Grid Lines -->
-            <text x="32" y="12" class="chart-axis-label chart-axis-orange" text-anchor="middle" fill="#f37819" font-size="9" font-weight="700" letter-spacing="0.5">{{ 'count' | t }}</text>
-
-            <ng-container *ngFor="let tick of riskAxis.ticks">
-              <text x="38" [attr.y]="100 - (tick / riskAxis.niceMax) * 75 + 3" text-anchor="end" fill="#94a3b8" font-size="9">{{ tick }}</text>
-              <line *ngIf="tick > 0"
-                    x1="45" [attr.y1]="100 - (tick / riskAxis.niceMax) * 75"
-                    x2="480" [attr.y2]="100 - (tick / riskAxis.niceMax) * 75"
-                    stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />
-              <line *ngIf="tick === 0"
-                    x1="45" y1="100"
-                    x2="480" y2="100"
-                    stroke="#cbd5e1" stroke-width="1.2" />
-            </ng-container>
-
-            <!-- Stacked Bars for Each Category: Critical, High, Medium, Low -->
-            <g *ngFor="let d of getRiskChartData(); let idx = index">
-              <!-- Rounded Clip Container for Stacked Segments -->
-              <g [attr.clip-path]="'url(#cat-bar-clip-' + idx + ')'">
-                <!-- Critical Segment (Red) -->
-                <rect *ngIf="d.seg.hCrit > 0"
-                      [attr.x]="d.x"
-                      [attr.y]="d.seg.yCrit"
-                      width="40"
-                      [attr.height]="d.seg.hCrit"
-                      fill="#ef4444"
-                      class="svg-bar hand-cursor"
-                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Critical' })">
-                  <title>{{ d.id }} - Critical: {{ d.critical }}</title>
-                </rect>
-
-                <!-- High Segment (Orange) -->
-                <rect *ngIf="d.seg.hHigh > 0"
-                      [attr.x]="d.x"
-                      [attr.y]="d.seg.yHigh"
-                      width="40"
-                      [attr.height]="d.seg.hHigh"
-                      fill="#ea580c"
-                      class="svg-bar hand-cursor"
-                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'High' })">
-                  <title>{{ d.id }} - High: {{ d.high }}</title>
-                </rect>
-
-                <!-- Medium Segment (Amber) -->
-                <rect *ngIf="d.seg.hMed > 0"
-                      [attr.x]="d.x"
-                      [attr.y]="d.seg.yMed"
-                      width="40"
-                      [attr.height]="d.seg.hMed"
-                      fill="#f59e0b"
-                      class="svg-bar hand-cursor"
-                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Medium' })">
-                  <title>{{ d.id }} - Medium: {{ d.medium }}</title>
-                </rect>
-
-                <!-- Low Segment (Green) -->
-                <rect *ngIf="d.seg.hLow > 0"
-                      [attr.x]="d.x"
-                      [attr.y]="d.seg.yLow"
-                      width="40"
-                      [attr.height]="d.seg.hLow"
-                      fill="#10b981"
-                      class="svg-bar hand-cursor"
-                      [routerLink]="getNewsLink({ riskType: d.id, impact: 'Low' })">
-                  <title>{{ d.id }} - Low: {{ d.low }}</title>
-                </rect>
-              </g>
-
-              <!-- Category Total Count Value on Top -->
-              <text [attr.x]="d.x + 20"
-                    [attr.y]="d.y - 4"
-                    text-anchor="middle"
-                    fill="#1e293b"
-                    font-size="10"
-                    font-weight="800"
-                    class="hand-cursor"
-                    [routerLink]="getNewsLink({ riskType: d.id })"
-                    [title]="d.id + ': ' + d.count + ' total articles'">
-                {{ d.count }}
-              </text>
-
-              <!-- Category Label Below Baseline -->
-              <text [attr.x]="d.x + 20"
-                    y="114"
-                    text-anchor="middle"
-                    fill="#334155"
-                    font-size="10.5"
-                    font-weight="700"
-                    style="text-transform: capitalize;"
-                    class="hand-cursor"
-                    [routerLink]="getNewsLink({ riskType: d.id })"
-                    [title]="'Filter by ' + d.id">
-                {{ d.id }}
-              </text>
-            </g>
-
-            <text *ngIf="getRiskChartData().length === 0" x="245" y="65" text-anchor="middle" fill="#94a3b8" font-size="12">
-              No categories found for this period
-            </text>
-          </svg>
+        <!-- Stacked bar chart in HTML/CSS: sizes are percentages, so it fills the card at any size without stretching text -->
+        <div class="cat-chart" *ngIf="getRiskChartData() as bars">
+          <div class="cat-axis-title">{{ 'count' | t }}</div>
+          <div class="cat-body">
+            <div class="cat-yaxis">
+              <span *ngFor="let tick of riskAxis.ticks" class="cat-tick" [style.bottom.%]="(tick / riskAxis.niceMax) * 100">{{ tick }}</span>
+            </div>
+            <div class="cat-plot">
+              <div *ngFor="let tick of riskAxis.ticks" class="cat-gridline" [class.cat-baseline]="tick === 0"
+                   [style.bottom.%]="(tick / riskAxis.niceMax) * 100"></div>
+              <div *ngFor="let d of bars" class="cat-col">
+                <div class="cat-bar-wrap" [style.height.%]="(d.count / riskAxis.niceMax) * 100">
+                  <span class="cat-value hand-cursor" [routerLink]="getNewsLink({ riskType: d.id })"
+                        [title]="d.id + ': ' + d.count + ' total articles'">{{ d.count }}</span>
+                  <div class="cat-bar">
+                    <div *ngIf="d.critical > 0" class="cat-seg hand-cursor" [style.flex-grow]="d.critical" style="background: #ef4444;"
+                         [routerLink]="getNewsLink({ riskType: d.id, impact: 'Critical' })" [title]="d.id + ' - Critical: ' + d.critical"></div>
+                    <div *ngIf="d.high > 0" class="cat-seg hand-cursor" [style.flex-grow]="d.high" style="background: #ea580c;"
+                         [routerLink]="getNewsLink({ riskType: d.id, impact: 'High' })" [title]="d.id + ' - High: ' + d.high"></div>
+                    <div *ngIf="d.medium > 0" class="cat-seg hand-cursor" [style.flex-grow]="d.medium" style="background: #f59e0b;"
+                         [routerLink]="getNewsLink({ riskType: d.id, impact: 'Medium' })" [title]="d.id + ' - Medium: ' + d.medium"></div>
+                    <div *ngIf="d.low > 0" class="cat-seg hand-cursor" [style.flex-grow]="d.low" style="background: #10b981;"
+                         [routerLink]="getNewsLink({ riskType: d.id, impact: 'Low' })" [title]="d.id + ' - Low: ' + d.low"></div>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="!bars.length" class="cat-empty">No categories found for this period</div>
+            </div>
+          </div>
+          <div class="cat-labels">
+            <span *ngFor="let d of bars" class="cat-label hand-cursor" [routerLink]="getNewsLink({ riskType: d.id })"
+                  [title]="'Filter by ' + d.id">{{ d.id }}</span>
+          </div>
         </div>
 
         <!-- Legend: Low, Medium, High, Critical -->
@@ -395,7 +320,7 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
             <button class="tab-pill-outline hand-cursor" routerLink="/companies">{{ 'allLenders' | t }}</button>
           </div>
         </div>
-        <div class="dash-lenders-list" style="display: grid; grid-template-columns: 1fr; gap: 4px 20px;">
+        <div class="dash-lenders-list lenders-fill">
           <div *ngFor="let item of displayTopCompanies" 
                class="dash-bar-row hand-cursor" 
                [class.active-lender-bar]="isSelectedLender(item._id)"
@@ -422,6 +347,30 @@ import { switchMap, catchError, takeUntil, distinctUntilChanged, tap } from 'rxj
         display: flex;
         flex-direction: column;
         flex: 1;
+      }
+      /* The two chart cards fill the space left below the summary cards (min 120px chart). */
+      .dash-grid-charts { flex: 1; min-height: 0; }
+      .cat-chart { flex: 1; min-height: 150px; display: flex; flex-direction: column; margin-top: 2px; }
+      .cat-axis-title { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; color: #f37819; text-transform: uppercase; }
+      .cat-body { flex: 1; display: flex; min-height: 0; padding-top: 18px; /* room for the value above a full-height bar */ }
+      .cat-yaxis { position: relative; width: 28px; flex-shrink: 0; }
+      .cat-tick { position: absolute; right: 6px; transform: translateY(50%); font-size: 10px; color: #94a3b8; line-height: 1; }
+      .cat-plot { position: relative; flex: 1; display: flex; justify-content: space-around; align-items: flex-end; }
+      .cat-gridline { position: absolute; left: 0; right: 0; border-top: 1px dashed #e2e8f0; }
+      .cat-baseline { border-top: 1.2px solid #cbd5e1; }
+      .cat-col { position: relative; z-index: 1; flex: 1; height: 100%; display: flex; justify-content: center; align-items: flex-end; }
+      .cat-bar-wrap { position: relative; width: clamp(32px, 50%, 84px); min-height: 2px; display: flex; }
+      .cat-bar { flex: 1; display: flex; flex-direction: column; border-radius: 4px 4px 0 0; overflow: hidden; }
+      .cat-seg { flex-basis: 0; min-height: 2px; transition: filter 0.15s; }
+      .cat-seg:hover { filter: brightness(1.08); }
+      .cat-value { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px;
+                   font-size: 11px; font-weight: 800; color: #1e293b; line-height: 1; }
+      .cat-labels { display: flex; justify-content: space-around; margin-left: 28px; padding-top: 5px; }
+      .cat-label { flex: 1; text-align: center; font-size: 11px; font-weight: 700; color: #334155; text-transform: capitalize; }
+      .cat-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
+      .lenders-fill {
+        flex: 1; min-height: 0; overflow-y: auto;
+        display: flex; flex-direction: column; justify-content: space-evenly; gap: 2px;
       }
       .hand-cursor { cursor: pointer; }
       .period-toggle-group {
@@ -999,17 +948,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.getYAxisTicks(this.maxRiskCount);
   }
 
-  getStackedSegments(d: { count: number; critical: number; high: number; medium: number; low: number; barH: number }) {
+  getStackedSegments(d: { count: number; critical: number; high: number; medium: number; low: number; barH: number }, base = 100) {
     if (d.count <= 0 || d.barH <= 0) {
       return {
         hCrit: 0,
         hHigh: 0,
         hMed: 0,
         hLow: 0,
-        yCrit: 100,
-        yHigh: 100,
-        yMed: 100,
-        yLow: 100
+        yCrit: base,
+        yHigh: base,
+        yMed: base,
+        yLow: base
       };
     }
 
@@ -1036,10 +985,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    const yLow = 100 - hLow;
+    const yLow = base - hLow;
     const yMed = yLow - hMed;
     const yHigh = yMed - hHigh;
-    const yCrit = 100 - d.barH;
+    const yCrit = base - d.barH;
 
     return {
       hCrit,
@@ -1169,15 +1118,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const total = this.displayTotal || 1;
     const niceMax = this.riskAxis.niceMax;
+    const base = 100;
+    const plotH = 75;
 
     return data.map((d, i) => {
       const percent = this.displayTotal > 0 ? Math.round((d.count / total) * 100) : 0;
-      const barH = d.count > 0 ? Math.max(Math.round((d.count / niceMax) * 75), 2) : 0;
+      const barH = d.count > 0 ? Math.max(Math.round((d.count / niceMax) * plotH), 2) : 0;
 
       const totalWidth = 400;
       const spacing = totalWidth / Math.max(1, data.length);
       const x = 50 + (spacing / 2) + (i * spacing) - 20;
-      const y = 100 - barH;
+      const y = base - barH;
 
       const seg = this.getStackedSegments({
         count: d.count,
@@ -1186,7 +1137,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         medium: d.medium,
         low: d.low,
         barH
-      });
+      }, base);
 
       return {
         id: d._id || 'none',

@@ -41,7 +41,7 @@ import { NewsArticle, RunLog } from '../models';
         </div>
         <select class="pill-select" [(ngModel)]="selectedStatus">
           <option value="">All Status</option>
-          <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+          <option *ngFor="let s of statuses" [value]="s">{{ s | titlecase }}</option>
         </select>
         <div style="flex: 1;"></div>
         <button class="pill-btn" (click)="exportCsv()">
@@ -67,12 +67,12 @@ import { NewsArticle, RunLog } from '../models';
           </thead>
           <tbody>
             <tr *ngFor="let r of pagedRuns">
-              <td style="font-weight: 500;">{{ r.job }}</td>
+              <td style="font-weight: 500;">{{ r.job | titlecase }}</td>
               <td>
                 <button *ngIf="r.status === 'failed'; else plainStatus" type="button" class="status-badge status-failed status-link"
-                        (click)="errorRun = r" title="View error details">{{ r.status }}</button>
+                        (click)="errorRun = r" title="View error details">{{ r.status | titlecase }}</button>
                 <ng-template #plainStatus>
-                  <span class="status-badge" [ngClass]="'status-' + r.status">{{ r.status }}</span>
+                  <span class="status-badge" [ngClass]="'status-' + r.status">{{ r.status | titlecase }}</span>
                 </ng-template>
               </td>
               <td style="color: #64748b;">{{ r.startedAt | date: 'short' }}</td>
@@ -112,7 +112,7 @@ import { NewsArticle, RunLog } from '../models';
     <div *ngIf="errorRun" class="logout-modal-backdrop" (click)="errorRun = null">
       <div class="logout-modal-card" role="dialog" aria-modal="true" aria-labelledby="run-error-title" (click)="$event.stopPropagation()">
         <h3 id="run-error-title" class="logout-modal-title">Run failed</h3>
-        <p class="run-error-meta">{{ errorRun.job }} · started {{ errorRun.startedAt | date: 'medium' }}</p>
+        <p class="run-error-meta">{{ errorRun.job | titlecase }} · started {{ errorRun.startedAt | date: 'medium' }}</p>
         <div class="logout-modal-error run-error-text">{{ errorRun.error || 'No error details were recorded for this run.' }}</div>
         <div class="logout-modal-actions">
           <button type="button" class="btn-modal-cancel" (click)="errorRun = null">Close</button>
