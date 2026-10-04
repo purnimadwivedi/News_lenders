@@ -23,8 +23,13 @@ module.exports = {
 
   newsapi: {
     key: process.env.NEWSAPI_KEY,
-    pageSize: parseInt(process.env.NEWSAPI_PAGE_SIZE || '20', 10),
-    language: process.env.NEWSAPI_LANGUAGE || 'en'
+    pageSize: parseInt(process.env.NEWSAPI_PAGE_SIZE || '100', 10),
+    language: process.env.NEWSAPI_LANGUAGE || 'en',
+    maxPages: parseInt(process.env.NEWSAPI_MAX_PAGES || '3', 10),
+    overlapHours: parseFloat(process.env.NEWSAPI_OVERLAP_HOURS || '12'),
+    initialLookbackDays: parseInt(process.env.NEWSAPI_INITIAL_LOOKBACK_DAYS || '7', 10),
+    // The free plan rejects `from` dates older than about a month.
+    maxLookbackDays: parseInt(process.env.NEWSAPI_MAX_LOOKBACK_DAYS || '29', 10)
   },
 
   anthropic: {

@@ -106,7 +106,12 @@ The classifier hits Claude once per new article. To control spend:
 | -------------------- | ---------------------- | --------------------------------------------------------- |
 | `ANTHROPIC_MODEL`    | `claude-sonnet-4-6`    | Switch to `claude-haiku-4-5-20251001` (~5x cheaper)       |
 | `FETCH_CRON`         | every 2h               | `0 8,14,20 * * *` to fetch only 3x/day                    |
-| `NEWSAPI_PAGE_SIZE`  | 20                     | Lower this if a company is overly noisy                   |
+| `NEWSAPI_PAGE_SIZE`  | 100                    | Articles per NewsAPI request (100 is the API maximum)     |
+| `NEWSAPI_MAX_PAGES`  | 3                      | Requests per lender per run; each one counts toward quota |
+| `NEWSAPI_OVERLAP_HOURS` | 12                  | How far before the last article each fetch re-checks      |
+| `NEWSAPI_INITIAL_LOOKBACK_DAYS` | 7           | History pulled the first time a lender is fetched         |
+
+Each fetch resumes per lender from the newest article already stored (`Company.newsCursor`), so runs only ask NewsAPI for what is new. Extra pages walk back in time with the `to` parameter, which also works on the free plan's 100-results-per-query cap.
 
 The system prompt is sent with `cache_control: ephemeral`, so Anthropic only bills the company-context block once per 5-minute window even when you classify many articles in a row.
 

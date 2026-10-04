@@ -12,6 +12,8 @@ const CompanySchema = new mongoose.Schema(
     },
     searchKeywords: { type: [String], default: [] },
     active: { type: Boolean, default: true },
+    // Newest publishedAt seen in a complete NewsAPI fetch; the next fetch resumes from here.
+    newsCursor: { type: Date, default: null },
     notes: { type: String, default: '' }
   },
   { timestamps: true }

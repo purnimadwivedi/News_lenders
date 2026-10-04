@@ -31,7 +31,7 @@ async function runFetchAndClassify({ trigger = 'cron' } = {}) {
 }
 
 async function doFetchAndClassify({ trigger }) {
-  const run =await RunLog.create({ job: trigger === 'cron' ? 'fetch' : 'manual', startedAt: new Date(), status: 'running' });
+  const run = await RunLog.create({ job: trigger === 'cron' ? 'fetch' : 'manual', startedAt: new Date(), status: 'running' });
   logger.info(`=== Fetch+Classify run started (${trigger}) — runId=${run._id} ===`);
 
   const stats = {
@@ -42,6 +42,7 @@ async function doFetchAndClassify({ trigger }) {
     articlesFailed: 0,
     emailsSent: 0
   };
+  let fetchStopped = false;
 
   try {
     const companies = await Company.find({ active: true });
@@ -57,13 +58,21 @@ async function doFetchAndClassify({ trigger }) {
         stats.articlesNew += res.newCount;
       } catch (err) {
         logger.error(`Fetch failed for ${company.name}: ${err.message}`);
+        // A bad key or exhausted daily quota fails every lender the same way; stop and say so.
+        if (err.accountWide) {
+          fetchStopped = true;
+          run.error = `News fetch stopped: ${err.message}`;
+          break;
+        }
       }
     }
 
     const classifyResult = await classifier.classifyPending({ limit: 100 });
     stats.articlesClassified = classifyResult.classified;
     stats.articlesFailed = classifyResult.failed;
-    if (classifyResult.abortReason) run.error = classifyResult.abortReason;
+    if (classifyResult.abortReason) {
+      run.error = [run.error, classifyResult.abortReason].filter(Boolean).join(' · ');
+    }
 
     const alertThresholdRank = LEVEL_RANK[env.alertThreshold] || 3;
     const qualifyingLevels = Object.keys(LEVEL_RANK).filter((l) => LEVEL_RANK[l] >= alertThresholdRank);
@@ -103,6 +112,8 @@ async function doFetchAndClassify({ trigger }) {
     }
 
     run.status = stats.articlesFailed > 0 && stats.articlesClassified === 0 ? 'failed' : (stats.articlesFailed > 0 ? 'partial' : 'success');
+    // A fetch stopped by an account-wide NewsAPI error is not a success even if classification went fine.
+    if (fetchStopped && run.status === 'success') run.status = stats.companiesProcessed ? 'partial' : 'failed';
   } catch (err) {
     logger.error(`Run failed: ${err.message}`);
     run.status = 'failed';

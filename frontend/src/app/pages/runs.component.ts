@@ -61,7 +61,6 @@ import { NewsArticle, RunLog } from '../models';
               <th (click)="sortBy('startedAt')">Started <span class="sort-icon">{{ sortCol === 'startedAt' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('duration')">Duration <span class="sort-icon">{{ sortCol === 'duration' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('companiesProcessed')">Lenders <span class="sort-icon">{{ sortCol === 'companiesProcessed' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
-              <th (click)="sortBy('articlesFetched')">Fetched <span class="sort-icon">{{ sortCol === 'articlesFetched' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesNew')">New <span class="sort-icon">{{ sortCol === 'articlesNew' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
               <th (click)="sortBy('articlesClassified')">Classified <span class="sort-icon">{{ sortCol === 'articlesClassified' ? (sortDesc ? '↓' : '↑') : '↑↓' }}</span></th>
             </tr>
@@ -79,12 +78,11 @@ import { NewsArticle, RunLog } from '../models';
               <td style="color: #64748b;">{{ r.startedAt | date: 'short' }}</td>
               <td style="color: #64748b;">{{ duration(r) }}</td>
               <td>{{ r.stats.companiesProcessed || 0 }}</td>
-              <td>{{ r.stats.articlesFetched || 0 }}</td>
               <td style="color: #10b981; font-weight: 600;">{{ r.stats.articlesNew || 0 }}</td>
               <td>{{ r.stats.articlesClassified || 0 }}</td>
             </tr>
             <tr *ngIf="!pagedRuns.length">
-              <td colspan="8" style="text-align:center; padding: 30px; color: #94a3b8;">
+              <td colspan="7" style="text-align:center; padding: 30px; color: #94a3b8;">
                 {{ search.trim() ? 'No jobs match your search.' : 'No runs yet.' }}
               </td>
             </tr>
@@ -212,7 +210,6 @@ export class RunsComponent implements OnInit, OnDestroy, DoCheck {
         v1 = ms1; v2 = ms2;
       }
       if (this.sortCol === 'companiesProcessed') { v1 = a.stats.companiesProcessed || 0; v2 = b.stats.companiesProcessed || 0; }
-      if (this.sortCol === 'articlesFetched') { v1 = a.stats.articlesFetched || 0; v2 = b.stats.articlesFetched || 0; }
       if (this.sortCol === 'articlesNew') { v1 = a.stats.articlesNew || 0; v2 = b.stats.articlesNew || 0; }
       if (this.sortCol === 'articlesClassified') { v1 = a.stats.articlesClassified || 0; v2 = b.stats.articlesClassified || 0; }
       

@@ -27,7 +27,7 @@ async function runDailyDigest() {
 }
 
 async function doDailyDigest() {
-  const run =await RunLog.create({ job: 'digest', startedAt: new Date(), status: 'running' });
+  const run = await RunLog.create({ job: 'digest', startedAt: new Date(), status: 'running' });
   logger.info(`=== Daily digest run started — runId=${run._id} ===`);
 
   const stats = { articlesClassified: 0, emailsSent: 0 };
