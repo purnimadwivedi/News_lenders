@@ -176,9 +176,13 @@ const DEFAULT_AUTH_TITLE = 'IMGC Lender News Portal';
       .login-terms-note {
         margin: 10px 0 14px 0;
         font-size: 11px;
-        color: rgba(255, 255, 255, 0.75);
+        color: var(--muted, #64748b);
         text-align: center;
         line-height: 1.4;
+      }
+      .login-terms-note a {
+        color: inherit;
+        text-decoration: underline;
       }
     :host {
       display: block;

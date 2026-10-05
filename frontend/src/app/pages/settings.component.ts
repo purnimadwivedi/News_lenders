@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -218,8 +218,8 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
         <button class="primary" (click)="save()" [disabled]="saving">
           {{ saving ? 'Saving…' : 'Save & apply next fetch' }}
         </button>
-        <button type="button" (click)="reload()" [disabled]="saving">Discard changes</button>
-        <button type="button" class="danger" (click)="reset()" [disabled]="saving">Reset to defaults</button>
+        <button type="button" (click)="discardChanges()" [disabled]="saving || !hasUnsavedChanges">Discard changes</button>
+        <button type="button" class="danger" (click)="openResetModal()" [disabled]="saving">Reset to defaults</button>
         <div class="spacer" style="flex: 1;"></div>
         <span class="muted small" *ngIf="cfg.updatedAt">
           Last updated {{ cfg.updatedAt | date: 'medium' }}
@@ -303,6 +303,45 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
             </button>
             <button type="button" class="danger btn-delete" (click)="executeDeleteCategory()" [disabled]="deleteSaving">
               {{ deleteSaving ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================= -->
+      <!-- MODAL 3: RESET TO DEFAULTS CONFIRMATION POPUP DIALOG       -->
+      <!-- ========================================================= -->
+      <div class="modal-backdrop" *ngIf="showResetModal" (click)="cancelResetModal()">
+        <div class="modal-card confirm-modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title">Reset to defaults?</h3>
+            <button type="button" class="modal-close-btn" (click)="cancelResetModal()" title="Close dialog">✕</button>
+          </div>
+          <div class="modal-body">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+              <div class="reset-warning-icon" style="width: 32px; height: 32px; border-radius: 8px; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <div>
+                <p class="confirm-message" style="margin: 0 0 6px 0; font-weight: 600; color: #1e293b;">
+                  Reset all impact definitions and categories to defaults?
+                </p>
+                <p class="muted small" style="margin: 0; line-height: 1.45; color: #64748b;">
+                  The AI will fall back to standard settings.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="cancelResetModal()" [disabled]="resetSaving">
+              Cancel
+            </button>
+            <button type="button" class="danger btn-delete" (click)="confirmReset()" [disabled]="resetSaving">
+              {{ resetSaving ? 'Resetting…' : 'Reset to defaults' }}
             </button>
           </div>
         </div>
@@ -823,11 +862,13 @@ const LLM_PLACEHOLDERS: Record<string, string> = {
     `
   ]
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   cfg: Configuration | null = null;
+  lastSavedConfig: Configuration | null = null;
   saving = false;
   status: { kind: 'ok' | 'err'; msg: string } | null = null;
+  private successTimer: any = null;
 
   // Selected Tab: Default 'impact'
   selectedConfiguration: 'impact' | 'category' = 'impact';
@@ -849,6 +890,77 @@ export class SettingsComponent implements OnInit {
   // Category Delete Confirmation Modal State
   categoryToDelete: Category | null = null;
   deleteSaving = false;
+
+  // Reset to Defaults Modal State
+  showResetModal = false;
+  resetSaving = false;
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
+    if (this.showResetModal && !this.resetSaving) {
+      this.cancelResetModal();
+    } else if (this.categoryToDelete && !this.deleteSaving) {
+      this.cancelDeleteCategory();
+    } else if (this.showCategoryModal && !this.modalSaving) {
+      this.cancelCategoryModal();
+    }
+  }
+
+  private cloneConfig(c: Configuration): Configuration {
+    return JSON.parse(JSON.stringify(c));
+  }
+
+  get hasUnsavedChanges(): boolean {
+    if (!this.cfg || !this.lastSavedConfig) return false;
+    return JSON.stringify(this.cfg) !== JSON.stringify(this.lastSavedConfig);
+  }
+
+  discardChanges() {
+    if (!this.lastSavedConfig) return;
+    this.cfg = this.cloneConfig(this.lastSavedConfig);
+    this.showSuccess('Changes discarded.');
+  }
+
+  discard() {
+    this.discardChanges();
+  }
+
+  showSuccess(msg: string) {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    this.status = { kind: 'ok', msg };
+    this.successTimer = setTimeout(() => {
+      if (this.status?.kind === 'ok') {
+        this.status = null;
+      }
+      this.successTimer = null;
+    }, 5000);
+  }
+
+  showError(msg: string) {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    this.status = { kind: 'err', msg };
+  }
+
+  clearStatus() {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+    this.status = null;
+  }
+
+  ngOnDestroy() {
+    if (this.successTimer) {
+      clearTimeout(this.successTimer);
+      this.successTimer = null;
+    }
+  }
 
   get impactConfigurations(): { impact: string; imgcSpecificDefinition: string; llmInstructions: string }[] {
     if (!this.cfg || !this.cfg.impactLevelDefinitions) return [];
@@ -880,19 +992,20 @@ export class SettingsComponent implements OnInit {
   }
 
   reload() {
-    this.status = null;
+    this.clearStatus();
     this.api.getConfig().subscribe({
       next: (c) => {
         this.cfg = this.normalize(c);
+        this.lastSavedConfig = this.cloneConfig(this.cfg);
       },
-      error: (err) => (this.status = { kind: 'err', msg: 'Failed to load: ' + (err.error?.error || err.message) })
+      error: (err) => this.showError('Failed to load: ' + (err.error?.error || err.message))
     });
   }
 
   save() {
     if (!this.cfg) return;
     this.saving = true;
-    this.status = null;
+    this.clearStatus();
 
     if (!this.cfg.riskTypeDefinitions) {
       this.cfg.riskTypeDefinitions = {} as any;
@@ -903,28 +1016,52 @@ export class SettingsComponent implements OnInit {
     this.api.updateConfig(this.cfg).subscribe({
       next: (c) => {
         this.cfg = this.normalize(c);
+        this.lastSavedConfig = this.cloneConfig(this.cfg);
         this.saving = false;
-        this.status = { kind: 'ok', msg: 'LLM Configuration saved successfully. The next fetch + classify run will use these definitions.' };
-        setTimeout(() => (this.status = null), 6000);
+        this.showSuccess('LLM Configuration saved successfully. The next fetch + classify run will use these definitions.');
       },
       error: (err) => {
         this.saving = false;
-        this.status = { kind: 'err', msg: 'Save failed: ' + (err.error?.error || err.message) };
+        this.showError('Save failed: ' + (err.error?.error || err.message));
+      }
+    });
+  }
+
+  // --- Reset to Defaults Modal Management Methods ---
+  openResetModal() {
+    this.showResetModal = true;
+    this.resetSaving = false;
+  }
+
+  cancelResetModal() {
+    if (this.resetSaving) return;
+    this.showResetModal = false;
+    this.resetSaving = false;
+  }
+
+  confirmReset() {
+    if (this.resetSaving) return;
+    this.resetSaving = true;
+    this.clearStatus();
+
+    this.api.resetConfig().subscribe({
+      next: (c) => {
+        this.cfg = this.normalize(c);
+        this.lastSavedConfig = this.cloneConfig(this.cfg);
+        this.resetSaving = false;
+        this.showResetModal = false;
+        this.showSuccess('Reset to default configuration.');
+      },
+      error: (err) => {
+        this.resetSaving = false;
+        this.showResetModal = false;
+        this.showError('Reset failed: ' + (err.error?.error || err.message));
       }
     });
   }
 
   reset() {
-    if (!confirm('Reset all impact definitions and categories to defaults? The AI will fall back to standard settings.')) return;
-    this.saving = true;
-    this.api.resetConfig().subscribe({
-      next: (c) => {
-        this.cfg = this.normalize(c);
-        this.saving = false;
-        this.status = { kind: 'ok', msg: 'Reset to default configuration.' };
-      },
-      error: () => (this.saving = false)
-    });
+    this.openResetModal();
   }
 
   categoryImgcPlaceholder(cat: Category): string {
@@ -1012,15 +1149,12 @@ export class SettingsComponent implements OnInit {
     this.api.updateConfig(this.cfg).subscribe({
       next: (c) => {
         this.cfg = this.normalize(c);
+        this.lastSavedConfig = this.cloneConfig(this.cfg);
         this.modalSaving = false;
         const savedName = trimmed;
         const isEdit = this.modalMode === 'edit';
         this.cancelCategoryModal();
-        this.status = {
-          kind: 'ok',
-          msg: isEdit ? `Category "${savedName}" updated successfully.` : `Category "${savedName}" added successfully.`
-        };
-        setTimeout(() => (this.status = null), 4000);
+        this.showSuccess(isEdit ? `Category "${savedName}" updated successfully.` : `Category "${savedName}" added successfully.`);
       },
       error: (err) => {
         this.modalSaving = false;
@@ -1052,14 +1186,14 @@ export class SettingsComponent implements OnInit {
     this.api.updateConfig(this.cfg).subscribe({
       next: (c) => {
         this.cfg = this.normalize(c);
+        this.lastSavedConfig = this.cloneConfig(this.cfg);
         this.deleteSaving = false;
         this.categoryToDelete = null;
-        this.status = { kind: 'ok', msg: `Category "${catName}" deleted successfully.` };
-        setTimeout(() => (this.status = null), 4000);
+        this.showSuccess(`Category "${catName}" deleted successfully.`);
       },
       error: (err) => {
         this.deleteSaving = false;
-        this.status = { kind: 'err', msg: 'Failed to delete category: ' + (err.error?.error || err.message) };
+        this.showError('Failed to delete category: ' + (err.error?.error || err.message));
       }
     });
   }

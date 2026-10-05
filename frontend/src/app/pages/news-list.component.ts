@@ -113,14 +113,14 @@ interface AuditTimelineItem {
         <div class="range-inputs-group">
           <div class="date-field">
             <label class="date-field-label">From</label>
-            <input type="date" [(ngModel)]="startDate" (change)="onCustomDateChange()" class="date-picker-input" title="Start date" />
+            <input type="date" [(ngModel)]="startDate" (change)="onCustomDateChange()" class="date-picker-input" title="Start date" [max]="maxToday" />
           </div>
 
           <span class="date-range-sep">to</span>
 
           <div class="date-field">
             <label class="date-field-label">To</label>
-            <input type="date" [(ngModel)]="endDate" (change)="onCustomDateChange()" class="date-picker-input" title="End date" />
+            <input type="date" [(ngModel)]="endDate" (change)="onCustomDateChange()" class="date-picker-input" title="End date" [max]="maxToday" [min]="startDate" />
           </div>
 
           <button *ngIf="startDate || endDate" 
@@ -1316,6 +1316,10 @@ export class NewsListComponent implements OnInit {
 
   constructor(private route: ActivatedRoute) { }
 
+  get maxToday(): string {
+    return formatDate(new Date());
+  }
+
   get hasActiveFilters(): boolean {
     return !!(this.search || this.company || this.impactLevel || this.riskType || this.dateFilter || this.startDate || this.endDate);
   }
@@ -1344,11 +1348,13 @@ export class NewsListComponent implements OnInit {
         this.applyDateFilterPreset(p);
       }
       if (qParams.has('startDate')) {
-        this.startDate = qParams.get('startDate') || '';
+        const qStart = qParams.get('startDate') || '';
+        this.startDate = qStart > this.maxToday ? this.maxToday : qStart;
         this.dateFilter = 'CUSTOM';
       }
       if (qParams.has('endDate')) {
-        this.endDate = qParams.get('endDate') || '';
+        const qEnd = qParams.get('endDate') || '';
+        this.endDate = qEnd > this.maxToday ? this.maxToday : qEnd;
         this.dateFilter = 'CUSTOM';
       }
     });
@@ -1365,6 +1371,13 @@ export class NewsListComponent implements OnInit {
   }
 
   onCustomDateChange() {
+    const todayStr = this.maxToday;
+    if (this.endDate && this.endDate > todayStr) {
+      this.endDate = todayStr;
+    }
+    if (this.startDate && this.startDate > todayStr) {
+      this.startDate = todayStr;
+    }
     if (this.startDate && this.endDate && this.startDate > this.endDate) {
       this.endDate = this.startDate;
     }
@@ -1800,6 +1813,17 @@ export class NewsListComponent implements OnInit {
 
   private fetch(replace: boolean) {
     this.loading = true;
+    const todayStr = this.maxToday;
+    if (this.endDate && this.endDate > todayStr) {
+      this.endDate = todayStr;
+    }
+    if (this.startDate && this.startDate > todayStr) {
+      this.startDate = todayStr;
+    }
+    if (this.startDate && this.endDate && this.startDate > this.endDate) {
+      this.endDate = this.startDate;
+    }
+
     const isCustomDate = !!(this.startDate || this.endDate);
     const hasClientFilter = !!(this.impactLevel || this.riskType || this.riskLevel || isCustomDate);
     const limit = hasClientFilter ? '200' : String(this.pageSize);
